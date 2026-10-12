@@ -25,7 +25,7 @@
     },
     {
       "id": "custom-types",
-      "versionRange": "^0.18.3",
+      "versionRange": "^0.15.23",
       "additionalData": {}
     },
     {
@@ -46,13 +46,6 @@
       "id": "lapiz",
       "versionRange": "^0.1.11",
       "additionalData": {}
-    },
-    {
-      "id": "songcore",
-      "versionRange": "^1.1.26",
-      "additionalData": {
-        "includeQmod": false
-      }
     }
   ],
   "workspace": {
@@ -65,7 +58,6 @@
       ],
       "qmod": [
         "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -clean",
-        "qpm qmod build",
         "pwsh -ExecutionPolicy Bypass -File ./scripts/createqmod.ps1 AudioLink -clean"
       ]
     }
