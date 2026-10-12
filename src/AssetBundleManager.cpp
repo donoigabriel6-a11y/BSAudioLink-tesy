@@ -1,5 +1,5 @@
 #include "AssetBundleManager.hpp"
-#include "beatsaber-hook/shared/utils/logging.hpp"
+#include "Logger.hpp"
 
 #include "UnityEngine/AssetBundleRequest.hpp"
 #include "UnityEngine/AssetBundleCreateRequest.hpp"
