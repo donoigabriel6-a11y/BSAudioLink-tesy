@@ -1,3 +1,5 @@
+#include "beatsaber-hook/shared/utils/utils.h"
+#include "beatsaber-hook/shared/utils/logging.hpp"
 #include "beatsaber-hook/shared/utils/hooking.hpp"
 #include "scotland2/shared/modloader.h"
 #include <dlfcn.h>
@@ -29,7 +31,7 @@
 
 #include "lapiz/shared/zenject/Zenjector.hpp"
 
-ModInfo modInfo{MOD_ID, VERSION};
+modloader::ModInfo modInfo{MOD_ID, VERSION, 0};
 
 Logger& getLogger() {
     static Logger* logger = new Logger(modInfo, LoggerOptions(false, true));
@@ -41,7 +43,7 @@ MAKE_HOOK_MATCH(SongPreviewPlayer_CrossFadeTo, static_cast<void (GlobalNamespace
     SongPreviewPlayer_CrossFadeTo(self, audioClip, musicVolume, startTime, duration, isDefault, onFadeOutCallback);
     auto menuProvider = AudioLink::MenuProvider::get_instance();
     if (menuProvider) {
-        menuProvider->SongPreviewPlayerProvide(self->activeChannel, self->audioSourceControllers);
+        menuProvider->SongPreviewPlayerProvide(self->_activeChannel, self->_audioSourceControllers);
     } else {
         getLogger().info("No menu provider exists!");
     }
@@ -52,7 +54,7 @@ MAKE_HOOK_MATCH(ColorManagerInstaller_InstallBindings, &GlobalNamespace::ColorMa
     ColorManagerInstaller_InstallBindings(self);
     auto menuProvider = AudioLink::MenuProvider::get_instance();
     if (menuProvider) {
-        menuProvider->ColorManagerInstallerProvide(self->menuColorScheme);
+        menuProvider->ColorManagerInstallerProvide(self->_menuColorScheme);
     } else {
         getLogger().info("No menu provider exists!");
     }
