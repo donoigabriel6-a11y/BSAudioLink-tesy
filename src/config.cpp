@@ -10,7 +10,11 @@ extern Logger& getLogger();
 extern modloader::ModInfo modInfo;
 Configuration& get_config() {
     static Configuration config(modInfo);
-    config.Load();
+    static bool loaded = false;
+    if (!loaded) {
+        config.Load();
+        loaded = true;
+    }
     return config;
 }
 
