@@ -17,13 +17,12 @@ Open PowerShell in the repository folder and run:
 ```powershell
 qpm restore
 pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -clean
-qpm qmod build
 pwsh -ExecutionPolicy Bypass -File ./scripts/createqmod.ps1 AudioLink -clean
 ```
 
-The `-ExecutionPolicy Bypass` option applies only to that PowerShell process and avoids changing the machine-wide execution policy. The QPM dependency graph pins SongCore `^1.1.26` and Custom Types `^0.18.3`, which are compatible with each other. SongCore is resolved for headers/API integration but is not bundled into the generated QMOD.
+The `-ExecutionPolicy Bypass` option applies only to that PowerShell process and avoids changing the machine-wide execution policy. The native code resolves SongCore's capability-registration symbol dynamically, so SongCore is intentionally not a compile-time QPM dependency. The legacy Beat Saber 1.40.8 dependency stack uses Custom Types `^0.15.23` alongside Lapiz `^0.1.11`; these versions cannot coexist with the newer Custom Types required by SongCore 1.1.26.
 
-The native library name is `libbs-audiolink.so` and the QPM mod ID is `bs-audiolink`. The Unity asset bundle is stored as base64 text so it can be committed through the repository API; the build script restores it before running CMake.
+The native library name is `libbs-audiolink.so` and the QPM mod ID is `bs-audiolink`. The root `mod.json` is used by the PowerShell packager; the legacy `qpm qmod build` command is not needed. The Unity asset bundle is stored as base64 text so it can be committed through the repository API; the build script restores it before running CMake.
 
 ## SongCore capability
 
