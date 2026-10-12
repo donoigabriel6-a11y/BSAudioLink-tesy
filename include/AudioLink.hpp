@@ -18,7 +18,7 @@
 #include "AssetBundleManager.hpp"
 
 // based on https://github.com/Aeroluna/BSAudioLink/blob/master/AudioLink/Scripts/AudioLink.cs
-DECLARE_CLASS_CODEGEN_INTERFACES_DLL(AudioLinkInternal, AudioLink, Il2CppObject, "AudioLink", Zenject::ITickable*, Zenject::IInitializable*, System::IDisposable*) {
+DECLARE_CLASS_CODEGEN_INTERFACES(AudioLink, AudioLinkComponent, Il2CppObject, Zenject::ITickable*, Zenject::IInitializable*, System::IDisposable*) {
     DECLARE_INSTANCE_FIELD_PRIVATE(Sombrero::FastColor, _customThemeColor0);
     DECLARE_INSTANCE_FIELD_PRIVATE(Sombrero::FastColor, _customThemeColor1);
     DECLARE_INSTANCE_FIELD_PRIVATE(Sombrero::FastColor, _customThemeColor2);
@@ -26,7 +26,7 @@ DECLARE_CLASS_CODEGEN_INTERFACES_DLL(AudioLinkInternal, AudioLink, Il2CppObject,
     DECLARE_INSTANCE_FIELD_PRIVATE(UnityEngine::AudioSource*, _audioSource);
     DECLARE_INSTANCE_FIELD_PRIVATE(UnityEngine::Material*, _audioMaterial);
     DECLARE_INSTANCE_FIELD_PRIVATE(UnityEngine::GameObject*, _testPlane);
-    DECLARE_INSTANCE_FIELD_PRIVATE(AssetBundleManager*, _assetBundleManager);
+    DECLARE_INSTANCE_FIELD_PRIVATE(::AudioLink::AssetBundleManager*, _assetBundleManager);
 
     DECLARE_INSTANCE_FIELD_PRIVATE(ArrayW<float>, _audioFramesL);
     DECLARE_INSTANCE_FIELD_PRIVATE(ArrayW<float>, _audioFramesR);
@@ -68,6 +68,3 @@ DECLARE_CLASS_CODEGEN_INTERFACES_DLL(AudioLinkInternal, AudioLink, Il2CppObject,
         DECLARE_CTOR(ctor, ::AudioLink::AssetBundleManager* assetBundleManager);
 };
 
-namespace AudioLink {
-    using AudioLink = ::AudioLinkInternal::AudioLink;
-}
