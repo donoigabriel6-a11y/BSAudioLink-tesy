@@ -55,6 +55,13 @@ if(EXISTS "${ASSETS_DIRECTORY}")
         set(SOURCE_FILE "${FILE}")
         if(ASSET MATCHES "\\.base64$")
             string(REGEX REPLACE "\\.base64$" "" ASSET "${ASSET}")
+            # build.ps1 decodes Bundle.base64 to assets/Bundle before CMake runs.
+            # If that real file exists, skip the text transport copy to avoid two
+            # object files defining the same _binary_Bundle_* symbols.
+            if(EXISTS "${ASSETS_DIRECTORY}/${ASSET}")
+                message(STATUS "Skipping ${FILE}: decoded asset ${ASSET} already exists")
+                continue()
+            endif()
             set(SOURCE_FILE "${ASSET_BINARIES_DIRECTORY}/${ASSET}")
             add_custom_command(
                 OUTPUT "${SOURCE_FILE}"
