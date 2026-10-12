@@ -51,6 +51,11 @@
       "additionalData": {
         "includeQmod": false
       }
+    },
+    {
+      "id": "songcore",
+      "versionRange": "^1.1.26",
+      "additionalData": {}
     }
   ],
   "workspace": {
