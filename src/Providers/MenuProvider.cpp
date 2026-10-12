@@ -1,5 +1,6 @@
 #include "Providers/MenuProvider.hpp"
 #include "beatsaber-hook/shared/utils/logging.hpp"
+#include "paper/shared/logger.hpp"
 
 #include "GlobalNamespace/PlayerData.hpp"
 #include "GlobalNamespace/ColorSchemesSettings.hpp"
@@ -28,7 +29,7 @@ namespace AudioLink {
     }
 
     void MenuProvider::SongPreviewPlayerProvide(int activeChannel, ArrayW<GlobalNamespace::SongPreviewPlayer::AudioSourceVolumeController*> audioSourceControllers) {
-        if (!_audioLink || !_audioLink->m_CachedPtr.m_value) {
+        if (!_audioLink) {
             getLogger().error("MenuProvider: AudioLink component is unavailable");
             return;
         }
@@ -37,7 +38,7 @@ namespace AudioLink {
             return;
         }
         auto controller = audioSourceControllers[activeChannel];
-        if (!controller || !controller->m_CachedPtr.m_value || !controller->audioSource ||
+        if (!controller || !controller->audioSource ||
             !controller->audioSource->m_CachedPtr.m_value) {
             getLogger().error("MenuProvider: active audio source controller is unavailable");
             return;
