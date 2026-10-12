@@ -25,7 +25,7 @@
     },
     {
       "id": "custom-types",
-      "versionRange": "^0.15.23",
+      "versionRange": "^0.18.3",
       "additionalData": {}
     },
     {
@@ -50,21 +50,23 @@
     {
       "id": "songcore",
       "versionRange": "^1.1.26",
-      "additionalData": {}
+      "additionalData": {
+        "includeQmod": false
+      }
     }
   ],
   "workspace": {
     "scripts": {
       "build": [
-        "pwsh ./scripts/build.ps1"
+        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1"
       ],
       "clean": [
-        "pwsh ./scripts/build.ps1 -clean"
+        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -clean"
       ],
       "qmod": [
-        "pwsh ./scripts/build.ps1 -clean",
-        "qpm-rust qmod build",
-        "pwsh ./scripts/createqmod.ps1 AudioLink -clean"
+        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -clean",
+        "qpm qmod build",
+        "pwsh -ExecutionPolicy Bypass -File ./scripts/createqmod.ps1 AudioLink -clean"
       ]
     }
   }
