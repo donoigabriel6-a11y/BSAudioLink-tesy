@@ -1,4 +1,5 @@
 #include "Providers/GameProvider.hpp"
+#include "beatsaber-hook/shared/utils/logging.hpp"
 
 DEFINE_TYPE(AudioLink, GameProvider);
 
@@ -17,7 +18,7 @@ namespace AudioLink {
 
     void GameProvider::Initialize() {
         getLogger().info("GameProvider Initialize");
-        _audioLink->SetAudioSource(_audioTimeSyncController->audioSource);
+        _audioLink->SetAudioSource(_audioTimeSyncController->_audioSource);
         _audioLink->SetColorScheme(_colorScheme);
     }
 }
