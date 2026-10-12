@@ -1,0 +1,74 @@
+# Asset embedding helper, adapted from the BSAudioLink-Quest reference project.
+set(ASSETS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+set(ASSET_BINARIES_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/binaryAssets")
+set(PREPENDED_ASSETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/prependedAssets")
+set(ASSET_HEADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include/assets.hpp")
+
+set(ASSET_HEADER_DATA "#pragma once
+#include <string_view>
+#include <span>
+#include \"beatsaber-hook/shared/utils/typedefs.h\"
+
+struct IncludedAsset {
+    IncludedAsset(uint8_t* start, uint8_t* end) : array(reinterpret_cast<Array<uint8_t>*>(start)) {
+        array->klass = nullptr;
+        array->monitor = nullptr;
+        array->bounds = nullptr;
+        array->max_length = end - start - 33;
+        *(end - 1) = '\\0';
+    }
+    operator ArrayW<uint8_t>() const { init(); return array; }
+    operator std::string_view() const { return { reinterpret_cast<char*>(array->values), array->Length() }; }
+    operator std::span<uint8_t>() const { return { array->values, array->Length() }; }
+    void init() const { if (!array->klass) array->klass = classof(Array<uint8_t>*); }
+private:
+    Array<uint8_t>* array;
+};
+#define DECLARE_FILE(name) \\
+    extern \"C\" uint8_t _binary_##name##_start[]; \\
+    extern \"C\" uint8_t _binary_##name##_end[]; \\
+    const IncludedAsset name { _binary_##name##_start, _binary_##name##_end};
+namespace IncludedAssets {
+")
+
+file(MAKE_DIRECTORY "${ASSET_BINARIES_DIRECTORY}" "${PREPENDED_ASSETS_DIR}")
+set(BINARY_ASSET_FILES "")
+if(EXISTS "${ASSETS_DIRECTORY}")
+    file(GLOB ASSETS LIST_DIRECTORIES false "${ASSETS_DIRECTORY}/*")
+    foreach(FILE IN LISTS ASSETS)
+        get_filename_component(ASSET "${FILE}" NAME)
+        # The .base64 repository transport file is not a runtime asset.
+        if(ASSET MATCHES "\\.base64$")
+            continue()
+        endif()
+        message(STATUS "Including asset: ${ASSET}")
+        set(PREPENDED "${PREPENDED_ASSETS_DIR}/${ASSET}")
+        add_custom_command(
+            OUTPUT "${PREPENDED}"
+            COMMAND ${CMAKE_COMMAND} -E echo_append "                                " > "${PREPENDED}"
+            COMMAND ${CMAKE_COMMAND} -E cat "${FILE}" >> "${PREPENDED}"
+            COMMAND ${CMAKE_COMMAND} -E echo_append " " >> "${PREPENDED}"
+            DEPENDS "${FILE}"
+            VERBATIM
+        )
+        set(OUTPUT_FILE "${ASSET_BINARIES_DIRECTORY}/${ASSET}.o")
+        add_custom_command(
+            OUTPUT "${OUTPUT_FILE}"
+            COMMAND ${CMAKE_OBJCOPY} "${ASSET}" "${OUTPUT_FILE}" --input-target=binary --output-target=elf64-littleaarch64 --set-section-flags=binary=contents,alloc,load,readonly,data
+            DEPENDS "${PREPENDED}"
+            WORKING_DIRECTORY "${PREPENDED_ASSETS_DIR}"
+            VERBATIM
+        )
+        list(APPEND BINARY_ASSET_FILES "${OUTPUT_FILE}")
+        string(REGEX REPLACE "[^a-zA-Z0-9]" "_" FIXED_ASSET "${ASSET}")
+        set(ASSET_HEADER_DATA "${ASSET_HEADER_DATA}    DECLARE_FILE(${FIXED_ASSET})\n")
+    endforeach()
+endif()
+
+set(ASSET_HEADER_DATA "${ASSET_HEADER_DATA}\n}\n")
+file(GENERATE OUTPUT "${ASSET_HEADER_PATH}" CONTENT "${ASSET_HEADER_DATA}")
+if(BINARY_ASSET_FILES)
+    add_library(asset_files OBJECT ${BINARY_ASSET_FILES})
+    set_target_properties(asset_files PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(${COMPILE_ID} PRIVATE asset_files)
+endif()
