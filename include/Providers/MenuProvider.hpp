@@ -6,7 +6,6 @@
 #include "GlobalNamespace/PlayerDataModel.hpp"
 #include "GlobalNamespace/SongPreviewPlayer.hpp"
 #include "GlobalNamespace/ColorSchemeSO.hpp"
-#include "GlobalNamespace/SongPreviewPlayer_AudioSourceVolumeController.hpp"
 #include "AudioLink.hpp"
 
 DECLARE_CLASS_CODEGEN(AudioLink, MenuProvider, Il2CppObject) {
