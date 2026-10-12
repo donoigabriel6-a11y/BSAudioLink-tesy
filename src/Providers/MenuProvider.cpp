@@ -28,12 +28,36 @@ namespace AudioLink {
     }
 
     void MenuProvider::SongPreviewPlayerProvide(int activeChannel, ArrayW<GlobalNamespace::SongPreviewPlayer::AudioSourceVolumeController*> audioSourceControllers) {
+        if (!_audioLink || !_audioLink->m_CachedPtr.m_value) {
+            getLogger().error("MenuProvider: AudioLink component is unavailable");
+            return;
+        }
+        if (!audioSourceControllers || activeChannel < 0 || activeChannel >= audioSourceControllers.size()) {
+            getLogger().error("MenuProvider: invalid active audio channel %d", activeChannel);
+            return;
+        }
         auto controller = audioSourceControllers[activeChannel];
+        if (!controller || !controller->m_CachedPtr.m_value || !controller->audioSource ||
+            !controller->audioSource->m_CachedPtr.m_value) {
+            getLogger().error("MenuProvider: active audio source controller is unavailable");
+            return;
+        }
         _audioLink->SetAudioSource(controller->audioSource);
     }
 
     void MenuProvider::ColorManagerInstallerProvide(GlobalNamespace::ColorSchemeSO* menuColorScheme) {
-        auto overrideColorScheme = _playerDataModel->playerData->colorSchemesSettings->GetOverrideColorScheme();
-        _audioLink->SetColorScheme(overrideColorScheme ? overrideColorScheme : menuColorScheme->get_colorScheme());
+        if (!_audioLink || !_audioLink->m_CachedPtr.m_value) {
+            getLogger().error("MenuProvider: AudioLink component is unavailable for color update");
+            return;
+        }
+        if (!menuColorScheme || !menuColorScheme->m_CachedPtr.m_value) {
+            getLogger().error("MenuProvider: menu color scheme is unavailable");
+            return;
+        }
+        auto playerData = _playerDataModel ? _playerDataModel->playerData : nullptr;
+        auto colorSettings = playerData ? playerData->colorSchemesSettings : nullptr;
+        auto overrideColorScheme = colorSettings ? colorSettings->GetOverrideColorScheme() : nullptr;
+        auto chosenScheme = overrideColorScheme ? overrideColorScheme : menuColorScheme->get_colorScheme();
+        if (chosenScheme) _audioLink->SetColorScheme(chosenScheme);
     }
 }
