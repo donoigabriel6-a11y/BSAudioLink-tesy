@@ -1,5 +1,5 @@
 #include "AudioLink.hpp"
-#include "beatsaber-hook/shared/utils/logging.hpp"
+#include "Logger.hpp"
 #include "AssetBundleManager.hpp"
 
 #include "config.hpp"
