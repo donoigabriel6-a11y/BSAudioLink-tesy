@@ -33,6 +33,13 @@ public:
         va_end(args);
     }
 
+    void critical(const char* format, ...) const {
+        va_list args;
+        va_start(args, format);
+        __android_log_vprint(ANDROID_LOG_FATAL, "BSAudioLink", format, args);
+        va_end(args);
+    }
+
     void error(const char* format, ...) const {
         va_list args;
         va_start(args, format);
