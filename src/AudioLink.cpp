@@ -24,6 +24,7 @@ using namespace UnityEngine;
 void GetOutputDataHelper(UnityEngine::AudioSource* instance, ArrayW<float>& out, int channel) {
     using GetOutputDataHelperMethod = function_ptr_t<void, UnityEngine::AudioSource*, ArrayW<float>, int>;
     static auto getOutputDataHelper = reinterpret_cast<GetOutputDataHelperMethod>(il2cpp_functions::resolve_icall("UnityEngine.AudioSource::GetOutputDataHelper"));
+    if (!instance || !instance->m_CachedPtr.m_value || !getOutputDataHelper) return;
     getOutputDataHelper(instance, out, channel);
 }
 
@@ -80,24 +81,55 @@ namespace AudioLink {
 
     void AudioLinkComponent::Initialize() {
         getLogger().info("AudioLink Initialize");
+
+        if (!_assetBundleManager || !_assetBundleManager->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: AssetBundleManager is null; visual initialization aborted");
+            return;
+        }
+
         _assetBundleManager->Load();
+        auto audioMaterial = _assetBundleManager->get_material();
+        auto audioRenderTexture = _assetBundleManager->get_renderTexture();
+        if (!audioMaterial || !audioMaterial->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: material is null after loading asset bundle; visual initialization aborted");
+            return;
+        }
+        if (!audioRenderTexture || !audioRenderTexture->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: render texture is null after loading asset bundle; visual initialization aborted");
+            return;
+        }
 
         static auto _audioMaterial_info = il2cpp_functions::class_get_field_from_name(klass, "_audioMaterial");
-        il2cpp_functions::field_set_value_object(this, _audioMaterial_info, _assetBundleManager->get_material());
-        auto audioRenderTexture = _assetBundleManager->get_renderTexture();
+        il2cpp_functions::field_set_value_object(this, _audioMaterial_info, audioMaterial);
 
-        getLogger().info("SetGlobalRenderTexture");
+        getLogger().info("AudioLink: assigning global render texture");
         Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
-        _initialized = true;
 
         _testPlane = UnityEngine::GameObject::CreatePrimitive(UnityEngine::PrimitiveType::Quad);
-        _testPlane->get_transform()->set_localScale(Sombrero::FastVector3(2, 1, 1) * config.showTestPlane);
-        _testPlane->get_transform()->set_localPosition({0, 0.1, 2});
-        _testPlane->get_transform()->set_localEulerAngles({80, 0, 0});
-        UnityEngine::Object::DontDestroyOnLoad(_testPlane);
-        auto mat = _testPlane->GetComponent<UnityEngine::Renderer*>()->get_material();
-        mat->set_shader(Shader::Find("Unlit/Texture"));
-        mat->set_mainTexture(audioRenderTexture);
+        if (_testPlane && _testPlane->m_CachedPtr.m_value) {
+            _testPlane->get_transform()->set_localScale(Sombrero::FastVector3(2, 1, 1) * config.showTestPlane);
+            _testPlane->get_transform()->set_localPosition({0, 0.1, 2});
+            _testPlane->get_transform()->set_localEulerAngles({80, 0, 0});
+            UnityEngine::Object::DontDestroyOnLoad(_testPlane);
+            auto renderer = _testPlane->GetComponent<UnityEngine::Renderer*>();
+            if (renderer && renderer->m_CachedPtr.m_value) {
+                auto mat = renderer->get_material();
+                if (mat && mat->m_CachedPtr.m_value) {
+                    auto shader = Shader::Find("Unlit/Texture");
+                    if (shader && shader->m_CachedPtr.m_value) {
+                        mat->set_shader(shader);
+                        mat->set_mainTexture(audioRenderTexture);
+                    } else {
+                        getLogger().error("AudioLink: Unity shader Unlit/Texture was not found for the test plane");
+                    }
+                }
+            }
+        } else {
+            getLogger().error("AudioLink: could not create the test plane");
+        }
+
+        _initialized = true;
+        getLogger().info("AudioLink initialized; audio texture and material are ready");
     }
 
     void AudioLinkComponent::Dispose() {
