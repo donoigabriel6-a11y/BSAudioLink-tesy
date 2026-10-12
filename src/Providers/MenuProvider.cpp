@@ -1,4 +1,5 @@
 #include "Providers/MenuProvider.hpp"
+#include "beatsaber-hook/shared/utils/logging.hpp"
 
 #include "GlobalNamespace/PlayerData.hpp"
 #include "GlobalNamespace/ColorSchemesSettings.hpp"
@@ -23,7 +24,6 @@ namespace AudioLink {
     }
 
     void MenuProvider::dtor() {
-        Finalize();
         instance = nullptr;
     }
 
