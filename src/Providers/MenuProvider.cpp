@@ -1,6 +1,5 @@
 #include "Providers/MenuProvider.hpp"
 #include "beatsaber-hook/shared/utils/logging.hpp"
-#include "paper/shared/logger.hpp"
 
 #include "GlobalNamespace/PlayerData.hpp"
 #include "GlobalNamespace/ColorSchemesSettings.hpp"
