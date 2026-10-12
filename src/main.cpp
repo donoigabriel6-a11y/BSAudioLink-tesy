@@ -1,5 +1,5 @@
 #include "beatsaber-hook/shared/utils/utils.h"
-#include "beatsaber-hook/shared/utils/logging.hpp"
+#include "Logger.hpp"
 #include "beatsaber-hook/shared/utils/hooking.hpp"
 #include "scotland2/shared/modloader.h"
 #include <dlfcn.h>
