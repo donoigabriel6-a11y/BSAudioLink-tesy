@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UnityEngine/Shader.hpp"
+#include "beatsaber-hook/shared/utils/logging.hpp"
 
 
 extern Logger& getLogger();
