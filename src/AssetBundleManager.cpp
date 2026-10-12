@@ -1,6 +1,5 @@
 #include "AssetBundleManager.hpp"
 
-#include "GlobalNamespace/SharedCoroutineStarter.hpp"
 #include "UnityEngine/AssetBundleRequest.hpp"
 #include "UnityEngine/AssetBundleCreateRequest.hpp"
 
