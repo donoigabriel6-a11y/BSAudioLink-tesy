@@ -79,7 +79,7 @@ extern "C" __attribute__((visibility("default"))) void load() {
     });
     zenjector->Install(Lapiz::Zenject::Location::App, [](::Zenject::DiContainer* container){
         container->BindInterfacesAndSelfTo<AudioLink::AssetBundleManager*>()->AsSingle();
-        container->BindInterfacesAndSelfTo<AudioLink::AudioLink*>()->AsSingle();
+        container->BindInterfacesAndSelfTo<AudioLink::AudioLinkComponent*>()->AsSingle();
     });
     zenjector->Install(Lapiz::Zenject::Location::Menu, [](::Zenject::DiContainer* container){
         container->Bind<AudioLink::MenuProvider*>()->AsSingle()->NonLazy();
