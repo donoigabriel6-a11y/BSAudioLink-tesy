@@ -8,11 +8,11 @@
 #include "AudioLink.hpp"
 
 DECLARE_CLASS_CODEGEN_INTERFACES(AudioLink, GameProvider, Il2CppObject, Zenject::IInitializable*) {
-    DECLARE_INSTANCE_FIELD_PRIVATE(::AudioLink::AudioLink*, _audioLink);
+    DECLARE_INSTANCE_FIELD_PRIVATE(::AudioLink::AudioLinkComponent*, _audioLink);
     DECLARE_INSTANCE_FIELD_PRIVATE(GlobalNamespace::AudioTimeSyncController*, _audioTimeSyncController);
     DECLARE_INSTANCE_FIELD_PRIVATE(GlobalNamespace::ColorScheme*, _colorScheme);
 
     DECLARE_OVERRIDE_METHOD_MATCH(void, Initialize, &::Zenject::IInitializable::Initialize);
     public:
-        DECLARE_CTOR(ctor, ::AudioLink::AudioLink* audioLink, GlobalNamespace::AudioTimeSyncController* audioTimeSyncController, GlobalNamespace::ColorScheme* colorScheme);
+        DECLARE_CTOR(ctor, ::AudioLink::AudioLinkComponent* audioLink, GlobalNamespace::AudioTimeSyncController* audioTimeSyncController, GlobalNamespace::ColorScheme* colorScheme);
 };
