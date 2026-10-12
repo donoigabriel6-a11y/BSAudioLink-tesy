@@ -5,6 +5,10 @@ Param(
     [Switch]$release
 )
 
+# Refresh QPM-managed dependencies so CMake sees changes in qpm.json.
+& qpm restore
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 # Restore the binary Unity asset from its text-safe repository representation.
 $assetBase64 = Join-Path $PSScriptRoot "../assets/Bundle.base64"
 $assetBinary = Join-Path $PSScriptRoot "../assets/Bundle"
