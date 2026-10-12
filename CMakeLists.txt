@@ -26,12 +26,22 @@ add_compile_definitions(MOD_ID=\"${MOD_ID}\")
 RECURSE_FILES(cpp_file_list ${SOURCE_DIR}/*.cpp)
 RECURSE_FILES(c_file_list ${SOURCE_DIR}/*.c)
 
+# beatsaber-hook 6.4.2 keeps the And64 inline-hook implementation under shared/inline-hook.
+# Compile it into this mod; it is source code, not part of libbeatsaber-hook.so.
+set(BSH_INLINE_HOOK_DIR ${EXTERN_DIR}/beatsaber-hook/shared/inline-hook)
+if(EXISTS ${BSH_INLINE_HOOK_DIR})
+    RECURSE_FILES(bs_hook_cpp_list ${BSH_INLINE_HOOK_DIR}/*.cpp)
+    RECURSE_FILES(bs_hook_c_list ${BSH_INLINE_HOOK_DIR}/*.c)
+endif()
+
 # add all src files to compile
 add_library(
     ${COMPILE_ID} 
     SHARED
     ${cpp_file_list}
     ${c_file_list}
+    ${bs_hook_cpp_list}
+    ${bs_hook_c_list}
 )
 
 # add src dir as include dir
