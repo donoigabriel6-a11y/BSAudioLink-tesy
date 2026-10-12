@@ -1,5 +1,6 @@
 #include "Providers/GameProvider.hpp"
 #include "beatsaber-hook/shared/utils/logging.hpp"
+#include "paper/shared/logger.hpp"
 
 DEFINE_TYPE(AudioLink, GameProvider);
 
@@ -18,7 +19,7 @@ namespace AudioLink {
 
     void GameProvider::Initialize() {
         getLogger().info("GameProvider Initialize");
-        if (!_audioLink || !_audioLink->m_CachedPtr.m_value) {
+        if (!_audioLink) {
             getLogger().error("GameProvider: AudioLink component is unavailable");
             return;
         }
@@ -28,7 +29,7 @@ namespace AudioLink {
         } else {
             getLogger().error("GameProvider: gameplay audio source is not available yet");
         }
-        if (_colorScheme && _colorScheme->m_CachedPtr.m_value) {
+        if (_colorScheme) {
             _audioLink->SetColorScheme(_colorScheme);
         } else {
             getLogger().error("GameProvider: gameplay color scheme is not available");
