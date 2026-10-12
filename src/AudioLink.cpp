@@ -16,7 +16,7 @@
 
 #include "sombrero/shared/FastVector3.hpp"
 
-DEFINE_TYPE(AudioLink, AudioLink);
+DEFINE_TYPE(AudioLinkInternal, AudioLink);
 
 using namespace UnityEngine;
 
@@ -42,9 +42,9 @@ inline float GetSpatialBlendMix(UnityEngine::AudioSource* self) {
 
 extern Logger& getLogger();
 
-namespace AudioLink {
+namespace AudioLinkInternal {
 
-    void AudioLink::ctor(AssetBundleManager* assetBundleManager) {
+    void AudioLink::ctor(::AudioLink::AssetBundleManager* assetBundleManager) {
         getLogger().info("AudioLink ctor");
 
         _audioFramesL = ArrayW<float>(il2cpp_array_size_t(1023 * 4));
