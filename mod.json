@@ -12,7 +12,12 @@
   ],
   "libraryFiles": [],
   "fileCopies": [],
-  "dependencies": [],
+  "dependencies": [
+    {
+      "id": "songcore",
+      "version": "^1.1.26"
+    }
+  ],
   "_QPVersion": "0.1.1",
   "$schema": "https://raw.githubusercontent.com/Lauriethefish/QuestPatcher.QMod/refs/heads/main/QuestPatcher.QMod/Resources/qmod.schema.json",
   "modloader": "Scotland2"
