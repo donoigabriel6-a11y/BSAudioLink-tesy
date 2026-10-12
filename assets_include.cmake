@@ -18,8 +18,8 @@ struct IncludedAsset {
         *(end - 1) = '\\0';
     }
     operator ArrayW<uint8_t>() const { init(); return array; }
-    operator std::string_view() const { return { reinterpret_cast<char*>(array->values), array->Length() }; }
-    operator std::span<uint8_t>() const { return { array->values, array->Length() }; }
+    operator std::string_view() const { return { reinterpret_cast<char*>(array->_values), array->get_Length() }; }
+    operator std::span<uint8_t>() const { return { array->_values, array->get_Length() }; }
     void init() const { if (!array->klass) array->klass = classof(Array<uint8_t>*); }
 private:
     Array<uint8_t>* array;
