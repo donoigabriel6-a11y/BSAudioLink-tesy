@@ -35,7 +35,7 @@
       "versionRange": "^6.4.2",
       "additionalData": {
         "extraFiles": [
-          "src/inline-hook"
+          "shared/inline-hook"
         ]
       }
     },
