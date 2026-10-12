@@ -1,11 +1,14 @@
 #include "config.hpp"
+#include "beatsaber-hook/shared/utils.hpp"
+#include "scotland2/shared/modloader.h"
 #include "beatsaber-hook/shared/config/config-utils.hpp"
 
 config_t config;
 
 extern Logger& getLogger();
+extern modloader::ModInfo modInfo;
 Configuration& get_config() {
-    static Configuration config({MOD_ID, VERSION});
+    static Configuration config(modInfo);
     config.Load();
     return config;
 }
