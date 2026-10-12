@@ -102,7 +102,8 @@ namespace AudioLink {
         static auto _audioMaterial_info = il2cpp_functions::class_get_field_from_name(klass, "_audioMaterial");
         il2cpp_functions::field_set_value_object(this, _audioMaterial_info, audioMaterial);
 
-        getLogger().info("AudioLink: assigning global render texture");
+        getLogger().info("AudioLink: applying AudioLink shader settings");
+        UpdateSettings();
         Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
 
         _testPlane = UnityEngine::GameObject::CreatePrimitive(UnityEngine::PrimitiveType::Quad);
@@ -140,7 +141,9 @@ namespace AudioLink {
 
     void AudioLinkComponent::Tick() {
         if (!_initialized) return;
-        _elapsedTime = Time::get_deltaTime();
+        // AudioLink time is cumulative; deltaTime alone never reaches the one-second
+        // update boundary and leaves time/FPS shader properties frozen.
+        _elapsedTime += Time::get_deltaTime();
 
         {
             double deltaTimeMS = Time::get_deltaTime() * 1000.0;
