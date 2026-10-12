@@ -1,6 +1,5 @@
 #include "Providers/GameProvider.hpp"
 #include "beatsaber-hook/shared/utils/logging.hpp"
-#include "paper/shared/logger.hpp"
 
 DEFINE_TYPE(AudioLink, GameProvider);
 
