@@ -1,4 +1,5 @@
 #include "beatsaber-hook/shared/utils/hooking.hpp"
+#include "scotland2/shared/modloader.h"
 #include <dlfcn.h>
 #include "custom-types/shared/register.hpp"
 
@@ -57,11 +58,15 @@ MAKE_HOOK_MATCH(ColorManagerInstaller_InstallBindings, &GlobalNamespace::ColorMa
     }
 }
 
-extern "C" void setup(ModInfo& info) {
-    info = modInfo;
+extern "C" __attribute__((visibility("default"))) void setup(CModInfo* info) noexcept {
+    if (!info) return;
+    info->id = MOD_ID;
+    info->version = VERSION;
+    info->version_long = 0;
 }
 
-extern "C" void load() {
+extern "C" __attribute__((visibility("default"))) void load() {
+    getLogger().info("AudioLink load() called");
     il2cpp_functions::Init();
 
     if (!LoadConfig()) SaveConfig();
@@ -122,6 +127,7 @@ namespace {
     }
 }
 
-extern "C" __attribute__((visibility("default"))) void late_load() {
+extern "C" __attribute__((visibility("default"))) void late_load() noexcept {
+    getLogger().info("AudioLink late_load() called; registering SongCore capability");
     RegisterSongCoreCapability();
 }
