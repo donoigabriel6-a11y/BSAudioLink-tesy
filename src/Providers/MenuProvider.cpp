@@ -47,7 +47,7 @@ namespace AudioLink {
     }
 
     void MenuProvider::ColorManagerInstallerProvide(GlobalNamespace::ColorSchemeSO* menuColorScheme) {
-        if (!_audioLink || !_audioLink->m_CachedPtr.m_value) {
+        if (!_audioLink) {
             getLogger().error("MenuProvider: AudioLink component is unavailable for color update");
             return;
         }
