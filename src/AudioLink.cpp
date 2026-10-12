@@ -1,4 +1,5 @@
 #include "AudioLink.hpp"
+#include "beatsaber-hook/shared/utils/logging.hpp"
 #include "AssetBundleManager.hpp"
 
 #include "config.hpp"
@@ -128,7 +129,7 @@ namespace AudioLink {
             FPSUpdate();
         }
 
-        if (_audioMaterial && _audioMaterial->m_CachedPtr) {
+        if (_audioMaterial && _audioMaterial->m_CachedPtr.m_value != 0) {
             time_t rawtime = time(nullptr);
             auto timeInfo = localtime(&rawtime);
             unsigned long long timeOfDay = timeInfo->tm_hour * 60 * 60 + // hours since midnight * 60 * 60 for seconds since midnight
