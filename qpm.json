@@ -15,8 +15,10 @@
   "dependencies": [
     {
       "id": "libil2cpp",
-      "versionRange": "^0.3.0",
-      "additionalData": {}
+      "versionRange": "^0.2.3",
+      "additionalData": {
+        "headersOnly": true
+      }
     },
     {
       "id": "codegen",
