@@ -29,17 +29,14 @@ void GetOutputDataHelper(UnityEngine::AudioSource* instance, ArrayW<float>& out,
 }
 
 inline float GetSpatialBlendMix(UnityEngine::AudioSource* self) {
-    // this is what the icall in unity does, so this is what we will do
-    return 0;
-    using Get_SpatialBlendMix = function_ptr_t<float, UnityEngine::AudioSource*>;
-    static auto get_SpatialBlendMix = reinterpret_cast<Get_SpatialBlendMix>(il2cpp_functions::resolve_icall("UnityEngine.AudioSource::GetSpatialBlendMix"));
-    return get_SpatialBlendMix(self);
+    if (!self || !self->m_CachedPtr.m_value) return 0.0f;
 
-    // TODO: fix the icall because what we do now is just a no
-    if (!self) return 0.0f;
-    auto obj = *(long *)(self + 0x90);
-    if (!obj) return 0.0f;
-    return *(float*)(obj + 4);
+    using Get_SpatialBlendMix = function_ptr_t<float, UnityEngine::AudioSource*>;
+    static auto get_SpatialBlendMix = reinterpret_cast<Get_SpatialBlendMix>(
+        il2cpp_functions::resolve_icall("UnityEngine.AudioSource::GetSpatialBlendMix"));
+    // Some Quest Unity builds do not expose this internal call. A safe fallback is
+    // preferable to dereferencing an invalid function pointer.
+    return get_SpatialBlendMix ? get_SpatialBlendMix(self) : 0.0f;
 }
 
 extern Logger& getLogger();
