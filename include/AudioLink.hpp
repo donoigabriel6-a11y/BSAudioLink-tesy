@@ -18,7 +18,7 @@
 #include "AssetBundleManager.hpp"
 
 // based on https://github.com/Aeroluna/BSAudioLink/blob/master/AudioLink/Scripts/AudioLink.cs
-DECLARE_CLASS_CODEGEN_INTERFACES(AudioLink, AudioLink, Il2CppObject, Zenject::ITickable*, Zenject::IInitializable*, System::IDisposable*) {
+DECLARE_CLASS_CODEGEN_INTERFACES_DLL(AudioLinkInternal, AudioLink, Il2CppObject, "AudioLink", Zenject::ITickable*, Zenject::IInitializable*, System::IDisposable*) {
     DECLARE_INSTANCE_FIELD_PRIVATE(Sombrero::FastColor, _customThemeColor0);
     DECLARE_INSTANCE_FIELD_PRIVATE(Sombrero::FastColor, _customThemeColor1);
     DECLARE_INSTANCE_FIELD_PRIVATE(Sombrero::FastColor, _customThemeColor2);
@@ -65,5 +65,9 @@ DECLARE_CLASS_CODEGEN_INTERFACES(AudioLink, AudioLink, Il2CppObject, Zenject::IT
     DECLARE_INSTANCE_METHOD(void, SetColorScheme, GlobalNamespace::ColorScheme* colorScheme);
 
     public:
-        DECLARE_CTOR(ctor, AssetBundleManager* assetBundleManager);
+        DECLARE_CTOR(ctor, ::AudioLink::AssetBundleManager* assetBundleManager);
 };
+
+namespace AudioLink {
+    using AudioLink = ::AudioLinkInternal::AudioLink;
+}
