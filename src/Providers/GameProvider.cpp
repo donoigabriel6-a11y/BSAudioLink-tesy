@@ -18,7 +18,20 @@ namespace AudioLink {
 
     void GameProvider::Initialize() {
         getLogger().info("GameProvider Initialize");
-        _audioLink->SetAudioSource(_audioTimeSyncController->_audioSource);
-        _audioLink->SetColorScheme(_colorScheme);
+        if (!_audioLink || !_audioLink->m_CachedPtr.m_value) {
+            getLogger().error("GameProvider: AudioLink component is unavailable");
+            return;
+        }
+        if (_audioTimeSyncController && _audioTimeSyncController->m_CachedPtr.m_value &&
+            _audioTimeSyncController->_audioSource && _audioTimeSyncController->_audioSource->m_CachedPtr.m_value) {
+            _audioLink->SetAudioSource(_audioTimeSyncController->_audioSource);
+        } else {
+            getLogger().error("GameProvider: gameplay audio source is not available yet");
+        }
+        if (_colorScheme && _colorScheme->m_CachedPtr.m_value) {
+            _audioLink->SetColorScheme(_colorScheme);
+        } else {
+            getLogger().error("GameProvider: gameplay color scheme is not available");
+        }
     }
 }
