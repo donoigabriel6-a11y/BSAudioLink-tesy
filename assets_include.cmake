@@ -54,7 +54,7 @@ if(EXISTS "${ASSETS_DIRECTORY}")
         set(OUTPUT_FILE "${ASSET_BINARIES_DIRECTORY}/${ASSET}.o")
         add_custom_command(
             OUTPUT "${OUTPUT_FILE}"
-            COMMAND ${CMAKE_OBJCOPY} "${ASSET}" "${OUTPUT_FILE}" --input-target=binary --output-target=elf64-littleaarch64 --set-section-flags=binary=contents,alloc,load,readonly,data
+            COMMAND ${CMAKE_OBJCOPY} "${ASSET}" "${OUTPUT_FILE}" --input-target binary --output-target elf64-aarch64 --set-section-flags binary=strings
             DEPENDS "${PREPENDED}"
             WORKING_DIRECTORY "${PREPENDED_ASSETS_DIR}"
             VERBATIM
