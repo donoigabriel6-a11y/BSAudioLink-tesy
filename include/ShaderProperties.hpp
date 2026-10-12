@@ -2,6 +2,7 @@
 
 #include "UnityEngine/Shader.hpp"
 #include "beatsaber-hook/shared/utils/logging.hpp"
+#include "paper/shared/logger.hpp"
 
 
 extern Logger& getLogger();
