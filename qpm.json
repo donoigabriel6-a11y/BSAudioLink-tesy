@@ -33,7 +33,11 @@
     {
       "id": "beatsaber-hook",
       "versionRange": "^6.4.2",
-      "additionalData": {}
+      "additionalData": {
+        "extraFiles": [
+          "src/inline-hook"
+        ]
+      }
     },
     {
       "id": "sombrero",
@@ -43,6 +47,11 @@
     {
       "id": "lapiz",
       "versionRange": "^0.2.23",
+      "additionalData": {}
+    },
+    {
+      "id": "paper2_scotland2",
+      "versionRange": "^4.8.0",
       "additionalData": {}
     },
     {
