@@ -6,6 +6,15 @@ Param(
 )
 
 # Refresh QPM-managed dependencies so CMake sees changes in qpm.json.
+# On Windows, QPM can fail if a previous interrupted restore left dependency
+# symlinks/files in extern. Use copies and clear only the generated dependency
+# directory before restoring it from qpm.json.
+& qpm config symlink disable
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$externDir = Join-Path (Get-Location) "extern"
+if (Test-Path -Path $externDir) {
+    Remove-Item -Path $externDir -Recurse -Force
+}
 & qpm restore
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
