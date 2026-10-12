@@ -12,7 +12,7 @@ namespace AudioLink {
         return instance;
     }
 
-    void MenuProvider::ctor(AudioLink* audioLink, GlobalNamespace::PlayerDataModel* playerDataModel) {
+    void MenuProvider::ctor(AudioLinkComponent* audioLink, GlobalNamespace::PlayerDataModel* playerDataModel) {
         getLogger().info("MenuProvider ctor!");
         static auto _audioLink_info = il2cpp_functions::class_get_field_from_name(klass, "_audioLink");
         static auto _playerDataModel_info = il2cpp_functions::class_get_field_from_name(klass, "_playerDataModel");
