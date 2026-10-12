@@ -63,6 +63,10 @@ namespace AudioLink {
     }
 
     void AudioLinkComponent::SetAudioSource(UnityEngine::AudioSource* audioSource) {
+        if (!audioSource || !audioSource->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: refusing to set an invalid AudioSource");
+            return;
+        }
         getLogger().info("Set AudioSource: %p", audioSource);
         static auto _audioSource_info = il2cpp_functions::class_get_field_from_name(klass, "_audioSource");
         il2cpp_functions::field_set_value_object(this, _audioSource_info, audioSource);
@@ -104,6 +108,7 @@ namespace AudioLink {
 
         getLogger().info("AudioLink: applying AudioLink shader settings");
         UpdateSettings();
+        UpdateThemeColors();
         Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
 
         _testPlane = UnityEngine::GameObject::CreatePrimitive(UnityEngine::PrimitiveType::Quad);
