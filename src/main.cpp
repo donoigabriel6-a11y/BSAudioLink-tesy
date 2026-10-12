@@ -3,6 +3,7 @@
 #include "beatsaber-hook/shared/utils/hooking.hpp"
 #include "scotland2/shared/modloader.h"
 #include <dlfcn.h>
+#include <android/log.h>
 #include "custom-types/shared/register.hpp"
 
 #if __has_include("pinkcore/shared/RequirementAPI.hpp")
@@ -32,6 +33,61 @@
 #include "lapiz/shared/zenject/Zenjector.hpp"
 
 modloader::ModInfo modInfo{MOD_ID, VERSION, 0};
+
+namespace {
+    constexpr const char* kLogTag = "BSAudioLink";
+    constexpr const char* kAudioLinkCapability = "AudioLink";
+    constexpr __SIZE_TYPE__ kAudioLinkCapabilityLength = 9;
+
+    using RegisterCapability_t = void (*)(const char*, __SIZE_TYPE__);
+    static bool g_songCoreCapabilityRegistered = false;
+
+    void CapabilityLogInfo(const char* message) {
+        __android_log_print(ANDROID_LOG_INFO, kLogTag, "%s", message);
+    }
+
+    void CapabilityLogError(const char* message) {
+        __android_log_print(ANDROID_LOG_ERROR, kLogTag, "%s", message);
+    }
+
+    bool RegisterSongCoreCapability() {
+        if (g_songCoreCapabilityRegistered) return true;
+
+        // Verified SongCore Quest ABI: RegisterCapability(std::string_view) is passed
+        // as pointer + length on ARM64. Keep both NDK and libc++ symbol variants.
+        static constexpr const char* kNdkSymbol =
+            "_ZN8SongCore3API12Capabilities18RegisterCapabilityENSt6__ndk117basic_string_viewIcNS2_11char_traitsIcEEEE";
+        static constexpr const char* kStdSymbol =
+            "_ZN8SongCore3API12Capabilities18RegisterCapabilityESt17basic_string_viewIcSt11char_traitsIcEE";
+
+        auto fn = reinterpret_cast<RegisterCapability_t>(dlsym(RTLD_DEFAULT, kNdkSymbol));
+        if (!fn) fn = reinterpret_cast<RegisterCapability_t>(dlsym(RTLD_DEFAULT, kStdSymbol));
+
+        if (!fn) {
+            CapabilityLogInfo("SongCore capability symbol not in global scope; trying libsongcore.so");
+            void* handle = dlopen("libsongcore.so", RTLD_NOW | RTLD_GLOBAL);
+            if (handle) {
+                fn = reinterpret_cast<RegisterCapability_t>(dlsym(handle, kNdkSymbol));
+                if (!fn) fn = reinterpret_cast<RegisterCapability_t>(dlsym(handle, kStdSymbol));
+                // Keep the handle open: the resolved function belongs to this library.
+            } else {
+                const char* error = dlerror();
+                __android_log_print(ANDROID_LOG_ERROR, kLogTag,
+                                    "dlopen libsongcore.so failed: %s", error ? error : "unknown error");
+            }
+        }
+
+        if (!fn) {
+            CapabilityLogError("SongCore RegisterCapability symbol not found; will retry at late_load");
+            return false;
+        }
+
+        fn(kAudioLinkCapability, kAudioLinkCapabilityLength);
+        g_songCoreCapabilityRegistered = true;
+        CapabilityLogInfo("Registered SongCore capability: AudioLink");
+        return true;
+    }
+}
 
 Logger& getLogger() {
     static Logger* logger = new Logger(modInfo, LoggerOptions(false, true));
@@ -69,6 +125,7 @@ extern "C" __attribute__((visibility("default"))) void setup(CModInfo* info) noe
 
 extern "C" __attribute__((visibility("default"))) void load() {
     getLogger().info("AudioLink load() called");
+    CapabilityLogInfo("AudioLink native library loaded");
     il2cpp_functions::Init();
 
     if (!LoadConfig()) SaveConfig();
@@ -91,45 +148,15 @@ extern "C" __attribute__((visibility("default"))) void load() {
     INSTALL_HOOK(logger, ColorManagerInstaller_InstallBindings);
 
 #ifdef PINKCORE
-    // Register installed so maps could use this as a suggestion, or sabers could check if it was installed
     PinkCore::RequirementAPI::RegisterInstalled("AudioLink");
 #endif
-}
 
-// Register the map requirement with SongCore on Quest. Resolve the API at runtime
-// so the mod does not need a hard native link against libsongcore.so.
-namespace {
-    using RegisterCapability_t = void (*)(const char*, __SIZE_TYPE__);
-    static constexpr const char* kAudioLinkCapability = "AudioLink";
-    static constexpr __SIZE_TYPE__ kAudioLinkCapabilityLength = 9;
-
-    void RegisterSongCoreCapability() {
-        static constexpr const char* kNdkSymbol =
-            "_ZN8SongCore3API12Capabilities18RegisterCapabilityENSt6__ndk117basic_string_viewIcNS2_11char_traitsIcEEEE";
-        static constexpr const char* kStdSymbol =
-            "_ZN8SongCore3API12Capabilities18RegisterCapabilityESt17basic_string_viewIcSt11char_traitsIcEE";
-
-        auto fn = reinterpret_cast<RegisterCapability_t>(dlsym(RTLD_DEFAULT, kNdkSymbol));
-        if (!fn) fn = reinterpret_cast<RegisterCapability_t>(dlsym(RTLD_DEFAULT, kStdSymbol));
-
-        if (!fn) {
-            void* handle = dlopen("libsongcore.so", RTLD_NOW | RTLD_GLOBAL);
-            if (handle) {
-                fn = reinterpret_cast<RegisterCapability_t>(dlsym(handle, kNdkSymbol));
-                if (!fn) fn = reinterpret_cast<RegisterCapability_t>(dlsym(handle, kStdSymbol));
-            }
-        }
-
-        if (fn) {
-            fn(kAudioLinkCapability, kAudioLinkCapabilityLength);
-            getLogger().info("Registered SongCore capability: AudioLink");
-        } else {
-            getLogger().error("Could not register SongCore capability AudioLink: API symbol not found");
-        }
-    }
+    // Try now in case SongCore is already loaded. If not, late_load retries after
+    // dependencies have been loaded. The registration guard prevents duplicates.
+    RegisterSongCoreCapability();
 }
 
 extern "C" __attribute__((visibility("default"))) void late_load() noexcept {
-    getLogger().info("AudioLink late_load() called; registering SongCore capability");
+    CapabilityLogInfo("AudioLink late_load called; registering SongCore capability");
     RegisterSongCoreCapability();
 }
