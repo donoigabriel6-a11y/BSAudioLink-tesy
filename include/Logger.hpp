@@ -19,6 +19,13 @@ public:
         va_end(args);
     }
 
+    void warn(const char* format, ...) const {
+        va_list args;
+        va_start(args, format);
+        __android_log_vprint(ANDROID_LOG_WARN, "BSAudioLink", format, args);
+        va_end(args);
+    }
+
     void info(const char* format, ...) const {
         va_list args;
         va_start(args, format);
