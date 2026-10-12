@@ -1,7 +1,6 @@
 #include "config.hpp"
 #include "beatsaber-hook/shared/utils/utils.h"
 #include "beatsaber-hook/shared/utils/logging.hpp"
-#include "paper/shared/logger.hpp"
 #include "scotland2/shared/modloader.h"
 #include "beatsaber-hook/shared/config/config-utils.hpp"
 
