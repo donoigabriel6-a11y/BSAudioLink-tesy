@@ -60,13 +60,13 @@ namespace AudioLink {
 
     }
 
-    void AudioLink::SetAudioSource(UnityEngine::AudioSource* audioSource) {
+    void AudioLinkComponent::SetAudioSource(UnityEngine::AudioSource* audioSource) {
         getLogger().info("Set AudioSource: %p", audioSource);
         static auto _audioSource_info = il2cpp_functions::class_get_field_from_name(klass, "_audioSource");
         il2cpp_functions::field_set_value_object(this, _audioSource_info, audioSource);
     }
 
-    void AudioLink::SetColorScheme(GlobalNamespace::ColorScheme* colorScheme) {
+    void AudioLinkComponent::SetColorScheme(GlobalNamespace::ColorScheme* colorScheme) {
         if (!colorScheme) return;
         getLogger().info("Set ColorScheme: %p", colorScheme);
         _customThemeColor0 = colorScheme->get_environmentColor0();
@@ -77,7 +77,7 @@ namespace AudioLink {
         UpdateThemeColors();
     }
 
-    void AudioLink::Initialize() {
+    void AudioLinkComponent::Initialize() {
         getLogger().info("AudioLink Initialize");
         _assetBundleManager->Load();
 
@@ -99,13 +99,13 @@ namespace AudioLink {
         mat->set_mainTexture(audioRenderTexture);
     }
 
-    void AudioLink::Dispose() {
+    void AudioLinkComponent::Dispose() {
         if (_testPlane && _testPlane->m_CachedPtr.m_value)
             UnityEngine::Object::DestroyImmediate(_testPlane);
         _testPlane = nullptr;
     }
 
-    void AudioLink::Tick() {
+    void AudioLinkComponent::Tick() {
         if (!_initialized) return;
         _elapsedTime = Time::get_deltaTime();
 
@@ -166,7 +166,7 @@ namespace AudioLink {
         }
     }
 
-    void AudioLink::UpdateSettings() {
+    void AudioLinkComponent::UpdateSettings() {
         getLogger().info("Updating Settings");
         if (!_audioMaterial || !_audioMaterial->m_CachedPtr.m_value) return;
         _audioMaterial->SetFloat(ShaderProperties::_x0, ConfigProperties::X0);
@@ -184,7 +184,7 @@ namespace AudioLink {
         _audioMaterial->SetFloat(ShaderProperties::_treble, ConfigProperties::TREBLE);
     }
 
-    void AudioLink::UpdateThemeColors() {
+    void AudioLinkComponent::UpdateThemeColors() {
         getLogger().info("Updating Color Scheme");
         if (!_audioMaterial || !_audioMaterial->m_CachedPtr.m_value) return;
         _audioMaterial->SetInt(ShaderProperties::_themeColorMode, ConfigProperties::THEME_COLOR_MODE);
@@ -194,7 +194,7 @@ namespace AudioLink {
         _audioMaterial->SetColor(ShaderProperties::_customThemeColor3ID, _customThemeColor3);
     }
 
-    void AudioLink::FPSUpdate() {
+    void AudioLinkComponent::FPSUpdate() {
         if (_audioMaterial && _audioMaterial->m_CachedPtr.m_value) {
             _audioMaterial->SetVector(ShaderProperties::_versionNumberAndFPSProperty, Vector4(ConfigProperties::AUDIOLINK_VERSION_NUMBER, 0, _fPSCount, 1));
             _audioMaterial->SetVector(ShaderProperties::_playerCountAndData, {0, 0, 0, 0});
@@ -233,7 +233,7 @@ namespace AudioLink {
         }
     }
 
-    void AudioLink::SendAudioOutputData() {
+    void AudioLinkComponent::SendAudioOutputData() {
         GetOutputDataHelper(_audioSource, _audioFramesL, 0); // left channel
 
         if (_rightChannelTestCounter > 0)
@@ -278,13 +278,13 @@ namespace AudioLink {
     }
 
     /* these methods exist to make the things they return "readonly" */
-    Sombrero::FastColor AudioLink::get_customThemeColor0() { return _customThemeColor0; }
-    Sombrero::FastColor AudioLink::get_customThemeColor1() { return _customThemeColor1; }
-    Sombrero::FastColor AudioLink::get_customThemeColor2() { return _customThemeColor2; }
-    Sombrero::FastColor AudioLink::get_customThemeColor3() { return _customThemeColor3; }
-    AudioSource* AudioLink::get_audioSource() { return _audioSource; }
-    Material* AudioLink::get_audioMaterial() { return _audioMaterial; }
-    ArrayW<float> AudioLink::get_audioFramesL() { return _audioFramesL; }
-    ArrayW<float> AudioLink::get_audioFramesR() { return _audioFramesR; }
-    ArrayW<float> AudioLink::get_samples() { return _samples; }
+    Sombrero::FastColor AudioLinkComponent::get_customThemeColor0() { return _customThemeColor0; }
+    Sombrero::FastColor AudioLinkComponent::get_customThemeColor1() { return _customThemeColor1; }
+    Sombrero::FastColor AudioLinkComponent::get_customThemeColor2() { return _customThemeColor2; }
+    Sombrero::FastColor AudioLinkComponent::get_customThemeColor3() { return _customThemeColor3; }
+    AudioSource* AudioLinkComponent::get_audioSource() { return _audioSource; }
+    Material* AudioLinkComponent::get_audioMaterial() { return _audioMaterial; }
+    ArrayW<float> AudioLinkComponent::get_audioFramesL() { return _audioFramesL; }
+    ArrayW<float> AudioLinkComponent::get_audioFramesR() { return _audioFramesR; }
+    ArrayW<float> AudioLinkComponent::get_samples() { return _samples; }
 }
