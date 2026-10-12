@@ -1,5 +1,6 @@
 #include "AudioLink.hpp"
 #include "beatsaber-hook/shared/utils/logging.hpp"
+#include "paper/shared/logger.hpp"
 #include "AssetBundleManager.hpp"
 
 #include "config.hpp"
@@ -83,7 +84,7 @@ namespace AudioLink {
     void AudioLinkComponent::Initialize() {
         getLogger().info("AudioLink Initialize");
 
-        if (!_assetBundleManager || !_assetBundleManager->m_CachedPtr.m_value) {
+        if (!_assetBundleManager) {
             getLogger().error("AudioLink: AssetBundleManager is null; visual initialization aborted");
             return;
         }
