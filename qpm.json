@@ -48,6 +48,13 @@
       "id": "lapiz",
       "versionRange": "^0.1.11",
       "additionalData": {}
+    },
+    {
+      "id": "scotland2",
+      "versionRange": "^0.1.4",
+      "additionalData": {
+        "includeQmod": false
+      }
     }
   ],
   "workspace": {
