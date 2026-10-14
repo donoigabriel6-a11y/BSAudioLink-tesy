@@ -23,10 +23,11 @@ DEFINE_TYPE(AudioLink, AudioLinkComponent);
 using namespace UnityEngine;
 
 void GetOutputDataHelper(UnityEngine::AudioSource* instance, ArrayW<float>& out, int channel) {
-    using GetOutputDataHelperMethod = function_ptr_t<void, UnityEngine::AudioSource*, ArrayW<float>, int>;
-    static auto getOutputDataHelper = reinterpret_cast<GetOutputDataHelperMethod>(il2cpp_functions::resolve_icall("UnityEngine.AudioSource::GetOutputDataHelper"));
-    if (!instance || !instance->m_CachedPtr.m_value || !getOutputDataHelper) return;
-    getOutputDataHelper(instance, out, channel);
+    // Use Unity's public AudioSource API instead of resolving the private
+    // GetOutputDataHelper icall. Some Quest/Beat Saber runtimes do not expose
+    // that private icall, which silently leaves the audio sample arrays empty.
+    if (!instance || !instance->m_CachedPtr.m_value) return;
+    instance->GetOutputData(out, channel);
 }
 
 inline float GetSpatialBlendMix(UnityEngine::AudioSource* self) {
