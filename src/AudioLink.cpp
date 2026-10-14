@@ -12,7 +12,6 @@
 #include "UnityEngine/Renderer.hpp"
 #include "UnityEngine/Texture2D.hpp"
 #include "UnityEngine/CustomRenderTexture.hpp"
-#include "UnityEngine/CustomRenderTextureUpdateMode.hpp"
 #include "UnityEngine/Transform.hpp"
 #include "UnityEngine/Rendering/RenderTextureSubElement.hpp"
 #include <chrono>
@@ -114,9 +113,26 @@ namespace AudioLink {
         // component explicitly switches this to Realtime; the Quest port must
         // do the same because the bundle's serialized update mode is not reliable.
         auto customRenderTexture = reinterpret_cast<UnityEngine::CustomRenderTexture*>(audioRenderTexture);
-        customRenderTexture->Initialize();
-        customRenderTexture->set_updateMode(UnityEngine::CustomRenderTextureUpdateMode::Realtime);
-        getLogger().info("AudioLink: CustomRenderTexture initialized in Realtime mode");
+        using CustomRenderTextureInitialize = function_ptr_t<void, UnityEngine::CustomRenderTexture*>;
+        static auto initializeCustomRenderTexture = reinterpret_cast<CustomRenderTextureInitialize>(
+            il2cpp_functions::resolve_icall("UnityEngine.CustomRenderTexture::Initialize"));
+        if (initializeCustomRenderTexture) {
+            initializeCustomRenderTexture(customRenderTexture);
+        } else {
+            getLogger().info("AudioLink: CustomRenderTexture Initialize icall unavailable; using loaded asset initialization");
+        }
+
+        // Realtime is enum value 0 in UnityEngine.CustomRenderTextureUpdateMode.
+        // Resolve the setter directly because some Quest generated headers omit this API.
+        using CustomRenderTextureSetUpdateMode = function_ptr_t<void, UnityEngine::CustomRenderTexture*, int>;
+        static auto setCustomRenderTextureUpdateMode = reinterpret_cast<CustomRenderTextureSetUpdateMode>(
+            il2cpp_functions::resolve_icall("UnityEngine.CustomRenderTexture::set_updateMode"));
+        if (setCustomRenderTextureUpdateMode) {
+            setCustomRenderTextureUpdateMode(customRenderTexture, 0);
+            getLogger().info("AudioLink: CustomRenderTexture set to Realtime mode");
+        } else {
+            getLogger().error("AudioLink: CustomRenderTexture updateMode setter icall was not found");
+        }
 
         Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
 
