@@ -11,6 +11,8 @@
 #include "UnityEngine/PrimitiveType.hpp"
 #include "UnityEngine/Renderer.hpp"
 #include "UnityEngine/Texture2D.hpp"
+#include "UnityEngine/CustomRenderTexture.hpp"
+#include "UnityEngine/CustomRenderTextureUpdateMode.hpp"
 #include "UnityEngine/Transform.hpp"
 #include "UnityEngine/Rendering/RenderTextureSubElement.hpp"
 #include <chrono>
@@ -106,6 +108,16 @@ namespace AudioLink {
         getLogger().info("AudioLink: applying AudioLink shader settings");
         UpdateSettings();
         UpdateThemeColors();
+        // AudioLink's data texture is a CustomRenderTexture. Unlike a plain
+        // RenderTexture, it must run its shader update pass continuously for
+        // compatible map shaders to see live audio data. The PC-side Unity
+        // component explicitly switches this to Realtime; the Quest port must
+        // do the same because the bundle's serialized update mode is not reliable.
+        auto customRenderTexture = reinterpret_cast<UnityEngine::CustomRenderTexture*>(audioRenderTexture);
+        customRenderTexture->Initialize();
+        customRenderTexture->set_updateMode(UnityEngine::CustomRenderTextureUpdateMode::Realtime);
+        getLogger().info("AudioLink: CustomRenderTexture initialized in Realtime mode");
+
         Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
 
         _testPlane = UnityEngine::GameObject::CreatePrimitive(UnityEngine::PrimitiveType::Quad);
