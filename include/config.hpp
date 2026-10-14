@@ -1,7 +1,7 @@
 #pragma once
 
 struct config_t {
-    bool showTestPlane = false;
+    bool showTestPlane = true;
 };
 
 void SaveConfig();
