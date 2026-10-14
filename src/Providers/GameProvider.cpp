@@ -26,28 +26,25 @@ namespace AudioLink {
     }
 
     void GameProvider::Tick() {
-        if (!_audioLink || !_audioLink->m_CachedPtr.m_value) return;
+        // AudioLinkComponent and ColorScheme are generated IL2CPP classes but do
+        // not expose Unity's m_CachedPtr field in their generated C++ wrappers.
+        if (!_audioLink) return;
 
         if (!_audioSourceAssigned) {
             auto controller = _audioTimeSyncController;
-            // Use the generated audioSource accessor used by the upstream Quest port.
-            // The controller can swap its source during gameplay, so do not treat the
-            // first successful assignment as permanent.
-            auto source = (controller && controller->m_CachedPtr.m_value) ? controller->audioSource : nullptr;
-            if (source && source->m_CachedPtr.m_value &&
-                (!_audioSourceAssigned || _audioLink->get_audioSource() != source)) {
-                _audioLink->SetAudioSource(source);
+            // AudioTimeSyncController stores its source as UnityW<AudioSource>.
+            // Retry until the controller and its source have both been initialized.
+            if (controller && controller->m_CachedPtr.m_value && controller->_audioSource) {
+                _audioLink->SetAudioSource(controller->_audioSource);
                 _audioSourceAssigned = true;
-                getLogger().info("GameProvider: gameplay audio source assigned/updated");
+                getLogger().info("GameProvider: gameplay audio source assigned");
             }
         }
 
-        if (!_colorSchemeAssigned) {
-            if (_colorScheme && _colorScheme->m_CachedPtr.m_value) {
-                _audioLink->SetColorScheme(_colorScheme);
-                _colorSchemeAssigned = true;
-                getLogger().info("GameProvider: gameplay color scheme assigned");
-            }
+        if (!_colorSchemeAssigned && _colorScheme) {
+            _audioLink->SetColorScheme(_colorScheme);
+            _colorSchemeAssigned = true;
+            getLogger().info("GameProvider: gameplay color scheme assigned");
         }
     }
 }
