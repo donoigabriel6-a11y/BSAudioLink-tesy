@@ -137,27 +137,36 @@ namespace AudioLink {
 
         Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
 
-        _testPlane = UnityEngine::GameObject::CreatePrimitive(UnityEngine::PrimitiveType::Quad);
-        if (_testPlane && _testPlane->m_CachedPtr.m_value) {
-            _testPlane->get_transform()->set_localScale(Sombrero::FastVector3(2, 1, 1) * config.showTestPlane);
-            _testPlane->get_transform()->set_localPosition({0, 0.1, 2});
-            _testPlane->get_transform()->set_localEulerAngles({80, 0, 0});
-            UnityEngine::Object::DontDestroyOnLoad(_testPlane);
-            auto renderer = _testPlane->GetComponent<UnityEngine::Renderer*>();
-            if (renderer && renderer->m_CachedPtr.m_value) {
-                auto mat = renderer->get_material();
-                if (mat && mat->m_CachedPtr.m_value) {
-                    auto shader = Shader::Find("Unlit/Texture");
-                    if (shader && shader->m_CachedPtr.m_value) {
-                        mat->set_shader(shader);
-                        mat->set_mainTexture(audioRenderTexture);
-                    } else {
-                        getLogger().error("AudioLink: Unity shader Unlit/Texture was not found for the test plane");
+        // Do not create any Unity primitive during normal startup. The test plane
+        // has caused instability on some Quest setups, so it is strictly opt-in.
+        // A future in-game control can enable it after AudioLink has initialized.
+        _testPlane = nullptr;
+        if (config.showTestPlane) {
+            _testPlane = UnityEngine::GameObject::CreatePrimitive(UnityEngine::PrimitiveType::Quad);
+            if (_testPlane && _testPlane->m_CachedPtr.m_value) {
+                _testPlane->get_transform()->set_localScale(Sombrero::FastVector3(2, 1, 1));
+                _testPlane->get_transform()->set_localPosition({0, 0.1, 2});
+                _testPlane->get_transform()->set_localEulerAngles({80, 0, 0});
+                UnityEngine::Object::DontDestroyOnLoad(_testPlane);
+                auto renderer = _testPlane->GetComponent<UnityEngine::Renderer*>();
+                if (renderer && renderer->m_CachedPtr.m_value) {
+                    auto mat = renderer->get_material();
+                    if (mat && mat->m_CachedPtr.m_value) {
+                        auto shader = Shader::Find("Unlit/Texture");
+                        if (shader && shader->m_CachedPtr.m_value) {
+                            mat->set_shader(shader);
+                            mat->set_mainTexture(audioRenderTexture);
+                        } else {
+                            getLogger().error("AudioLink: Unity shader Unlit/Texture was not found for the test plane");
+                        }
                     }
                 }
+            } else {
+                getLogger().error("AudioLink: could not create the test plane");
+                _testPlane = nullptr;
             }
         } else {
-            getLogger().error("AudioLink: could not create the test plane");
+            getLogger().info("AudioLink: test plane disabled; skipped primitive creation");
         }
 
         _initialized = true;
