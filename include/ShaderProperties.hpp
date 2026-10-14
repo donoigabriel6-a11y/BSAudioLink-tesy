@@ -13,7 +13,7 @@ namespace ShaderProperties {
 
         operator int () const {
             if (id == 0) {
-                id = UnityEngine::Shader::PropertyToID(std::string_view(str, sz)); 
+                id = UnityEngine::Shader::PropertyToID(std::string_view(str, sz - 1)); 
                 getLogger().info("Shader Prop '%s': %d", str, id);
             }
             return id;
