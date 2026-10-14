@@ -47,40 +47,40 @@ public:
     void debug(const char* format, ...) const {
         va_list args;
         va_start(args, format);
-        __android_log_vprint(ANDROID_LOG_DEBUG, "BSAudioLink", format, args);
         appendAudioLinkFileLog(ANDROID_LOG_DEBUG, format, args);
+        __android_log_vprint(ANDROID_LOG_DEBUG, "BSAudioLink", format, args);
         va_end(args);
     }
 
     void warn(const char* format, ...) const {
         va_list args;
         va_start(args, format);
-        __android_log_vprint(ANDROID_LOG_WARN, "BSAudioLink", format, args);
         appendAudioLinkFileLog(ANDROID_LOG_WARN, format, args);
+        __android_log_vprint(ANDROID_LOG_WARN, "BSAudioLink", format, args);
         va_end(args);
     }
 
     void info(const char* format, ...) const {
         va_list args;
         va_start(args, format);
-        __android_log_vprint(ANDROID_LOG_INFO, "BSAudioLink", format, args);
         appendAudioLinkFileLog(ANDROID_LOG_INFO, format, args);
+        __android_log_vprint(ANDROID_LOG_INFO, "BSAudioLink", format, args);
         va_end(args);
     }
 
     void critical(const char* format, ...) const {
         va_list args;
         va_start(args, format);
-        __android_log_vprint(ANDROID_LOG_FATAL, "BSAudioLink", format, args);
         appendAudioLinkFileLog(ANDROID_LOG_FATAL, format, args);
+        __android_log_vprint(ANDROID_LOG_FATAL, "BSAudioLink", format, args);
         va_end(args);
     }
 
     void error(const char* format, ...) const {
         va_list args;
         va_start(args, format);
-        __android_log_vprint(ANDROID_LOG_ERROR, "BSAudioLink", format, args);
         appendAudioLinkFileLog(ANDROID_LOG_ERROR, format, args);
+        __android_log_vprint(ANDROID_LOG_ERROR, "BSAudioLink", format, args);
         va_end(args);
     }
 
