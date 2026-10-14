@@ -30,11 +30,15 @@ namespace AudioLink {
 
         if (!_audioSourceAssigned) {
             auto controller = _audioTimeSyncController;
-            auto source = (controller && controller->m_CachedPtr.m_value) ? controller->_audioSource : nullptr;
-            if (source && source->m_CachedPtr.m_value) {
+            // Use the generated audioSource accessor used by the upstream Quest port.
+            // The controller can swap its source during gameplay, so do not treat the
+            // first successful assignment as permanent.
+            auto source = (controller && controller->m_CachedPtr.m_value) ? controller->audioSource : nullptr;
+            if (source && source->m_CachedPtr.m_value &&
+                (!_audioSourceAssigned || _audioLink->get_audioSource() != source)) {
                 _audioLink->SetAudioSource(source);
                 _audioSourceAssigned = true;
-                getLogger().info("GameProvider: gameplay audio source assigned");
+                getLogger().info("GameProvider: gameplay audio source assigned/updated");
             }
         }
 
