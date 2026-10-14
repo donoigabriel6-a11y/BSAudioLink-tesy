@@ -69,14 +69,16 @@
   ],
   "workspace": {
     "scripts": {
+      "restore": [
+        "pwsh -ExecutionPolicy Bypass -Command \"qpm config symlink disable; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; qpm restore; exit $LASTEXITCODE\""
+      ],
       "build": [
-        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1"
+        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -SkipRestore"
       ],
       "clean": [
-        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -clean"
+        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -clean -SkipRestore"
       ],
       "qmod": [
-        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -clean",
         "pwsh -ExecutionPolicy Bypass -File ./scripts/createqmod.ps1 AudioLink -clean"
       ]
     }
