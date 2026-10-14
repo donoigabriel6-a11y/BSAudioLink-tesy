@@ -122,17 +122,19 @@ namespace AudioLink {
             getLogger().info("AudioLink: CustomRenderTexture Initialize icall unavailable; using loaded asset initialization");
         }
 
-        // Use OnDemand and explicitly update once per game tick. This avoids
-        // relying on Unity's serialized CRT update mode from the PC-authored
-        // bundle, which may not be preserved by the Quest runtime.
+        // Let Unity's native PlayerLoop update this CustomRenderTexture every
+        // frame. CustomRenderTexture::Update is a managed API on this runtime,
+        // not a resolvable internal call; calling it through resolve_icall fails.
+        // Realtime is enum value 0; OnDemand is 1 and would require a managed
+        // Update(count) invocation that the generated Quest bindings do not expose.
         using CustomRenderTextureSetUpdateMode = function_ptr_t<void, UnityEngine::CustomRenderTexture*, int>;
         static auto setCustomRenderTextureUpdateMode = reinterpret_cast<CustomRenderTextureSetUpdateMode>(
             il2cpp_functions::resolve_icall("UnityEngine.CustomRenderTexture::set_updateMode"));
         if (setCustomRenderTextureUpdateMode) {
-            setCustomRenderTextureUpdateMode(customRenderTexture, 1); // OnDemand
-            getLogger().info("AudioLink: CustomRenderTexture set to OnDemand mode");
+            setCustomRenderTextureUpdateMode(customRenderTexture, 0); // Realtime
+            getLogger().info("AudioLink: CustomRenderTexture set to Realtime mode");
         } else {
-            getLogger().error("AudioLink: CustomRenderTexture updateMode setter icall was not found");
+            getLogger().error("AudioLink: updateMode setter icall unavailable; retaining bundle update mode");
         }
 
         Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
@@ -182,24 +184,11 @@ namespace AudioLink {
     void AudioLinkComponent::Tick() {
         if (!_initialized) return;
 
-        // Explicitly drive the AudioLink CustomRenderTexture on Quest. Rebind the
-        // global every tick as well, so map shaders keep seeing the same live texture
-        // even if another scene/mod changes global shader state.
+        // Unity updates Realtime CustomRenderTextures in its native PlayerLoop.
+        // Rebind the global each tick so map shaders keep seeing the same texture
+        // if another scene/mod changes global shader state.
         auto audioRenderTexture = _assetBundleManager ? _assetBundleManager->get_renderTexture() : nullptr;
         if (audioRenderTexture && audioRenderTexture->m_CachedPtr.m_value) {
-            using CustomRenderTextureUpdate = function_ptr_t<void, UnityEngine::CustomRenderTexture*, int>;
-            static auto updateCustomRenderTexture = reinterpret_cast<CustomRenderTextureUpdate>(
-                il2cpp_functions::resolve_icall("UnityEngine.CustomRenderTexture::Update"));
-            auto customRenderTexture = reinterpret_cast<UnityEngine::CustomRenderTexture*>(audioRenderTexture);
-            if (updateCustomRenderTexture) {
-                updateCustomRenderTexture(customRenderTexture, 1);
-            } else {
-                static bool updateIcallWarningLogged = false;
-                if (!updateIcallWarningLogged) {
-                    getLogger().error("AudioLink: CustomRenderTexture Update icall was not found; texture updates may be unavailable");
-                    updateIcallWarningLogged = true;
-                }
-            }
             Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
         }
 
