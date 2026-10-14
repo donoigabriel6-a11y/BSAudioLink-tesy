@@ -10,14 +10,12 @@ namespace AudioLink {
         static auto _audioLink_info = il2cpp_functions::class_get_field_from_name(klass, "_audioLink");
         static auto _audioTimeSyncController_info = il2cpp_functions::class_get_field_from_name(klass, "_audioTimeSyncController");
         static auto _colorScheme_info = il2cpp_functions::class_get_field_from_name(klass, "_colorScheme");
-        static auto _audioSourceAssigned_info = il2cpp_functions::class_get_field_from_name(klass, "_audioSourceAssigned");
-        static auto _colorSchemeAssigned_info = il2cpp_functions::class_get_field_from_name(klass, "_colorSchemeAssigned");
 
         il2cpp_functions::field_set_value_object(this, _audioLink_info, audioLink);
         il2cpp_functions::field_set_value_object(this, _audioTimeSyncController_info, audioTimeSyncController);
         il2cpp_functions::field_set_value_object(this, _colorScheme_info, colorScheme);
-        il2cpp_functions::field_set_value(this, _audioSourceAssigned_info, false);
-        il2cpp_functions::field_set_value(this, _colorSchemeAssigned_info, false);
+        _audioSourceAssigned = false;
+        _colorSchemeAssigned = false;
     }
 
     void GameProvider::Initialize() {
