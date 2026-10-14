@@ -2,21 +2,23 @@ Param(
     [Parameter(Mandatory=$false)]
     [Switch]$clean,
     [Parameter(Mandatory=$false)]
-    [Switch]$release
+    [Switch]$release,
+    [Parameter(Mandatory=$false)]
+    [Switch]$SkipRestore
 )
 
-# Refresh QPM-managed dependencies so CMake sees changes in qpm.json.
-# On Windows, QPM can fail if a previous interrupted restore left dependency
-# symlinks/files in extern. Use copies and clear only the generated dependency
-# directory before restoring it from qpm.json.
-& qpm config symlink disable
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-$externDir = Join-Path (Get-Location) "extern"
-if (Test-Path -Path $externDir) {
-    Remove-Item -Path $externDir -Recurse -Force
+# Dependency restore is separate so repeated native builds do not delete/re-download extern.
+# Run 'qpm s restore' after changing qpm.json or when extern is missing.
+if (-not $SkipRestore.IsPresent) {
+    & qpm config symlink disable
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    $externDir = Join-Path (Get-Location) "extern"
+    if (Test-Path -Path $externDir) {
+        Remove-Item -Path $externDir -Recurse -Force
+    }
+    & qpm restore
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
-& qpm restore
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # Restore the binary Unity asset from its text-safe repository representation.
 $assetBase64 = Join-Path $PSScriptRoot "../assets/Bundle.base64"
