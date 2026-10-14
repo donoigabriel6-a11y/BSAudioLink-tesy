@@ -1,0 +1,24 @@
+{
+  "name": "AudioLink",
+  "id": "bs-audiolink",
+  "author": "BSAudioLink Quest Port contributors",
+  "version": "0.0.2",
+  "packageId": "com.beatgames.beatsaber",
+  "packageVersion": "1.40.8_7379",
+  "description": "Quest native port of BSAudioLink. Registers the AudioLink SongCore capability at runtime.",
+  "coverImage": "",
+  "modFiles": [
+    "libbs-audiolink.so"
+  ],
+  "libraryFiles": [],
+  "fileCopies": [],
+  "dependencies": [
+    {
+      "id": "songcore",
+      "version": "^1.1.26"
+    }
+  ],
+  "_QPVersion": "0.1.1",
+  "$schema": "https://raw.githubusercontent.com/Lauriethefish/QuestPatcher.QMod/refs/heads/main/QuestPatcher.QMod/Resources/qmod.schema.json",
+  "modloader": "Scotland2"
+}

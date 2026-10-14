@@ -1,0 +1,356 @@
+#include "AudioLink.hpp"
+#include "Logger.hpp"
+#include "AssetBundleManager.hpp"
+
+#include "config.hpp"
+#include "ConfigProperties.hpp"
+#include "ShaderProperties.hpp"
+
+#include "UnityEngine/Time.hpp"
+#include "UnityEngine/Vector4.hpp"
+#include "UnityEngine/PrimitiveType.hpp"
+#include "UnityEngine/Renderer.hpp"
+#include "UnityEngine/Texture2D.hpp"
+#include "UnityEngine/CustomRenderTexture.hpp"
+#include "UnityEngine/Transform.hpp"
+#include "UnityEngine/Rendering/RenderTextureSubElement.hpp"
+#include <chrono>
+
+#include "sombrero/shared/FastVector3.hpp"
+
+DEFINE_TYPE(AudioLink, AudioLinkComponent);
+
+using namespace UnityEngine;
+
+void GetOutputDataHelper(UnityEngine::AudioSource* instance, ArrayW<float>& out, int channel) {
+    using GetOutputDataHelperMethod = function_ptr_t<void, UnityEngine::AudioSource*, ArrayW<float>, int>;
+    static auto getOutputDataHelper = reinterpret_cast<GetOutputDataHelperMethod>(il2cpp_functions::resolve_icall("UnityEngine.AudioSource::GetOutputDataHelper"));
+    if (!instance || !instance->m_CachedPtr.m_value || !getOutputDataHelper) return;
+    getOutputDataHelper(instance, out, channel);
+}
+
+inline float GetSpatialBlendMix(UnityEngine::AudioSource* self) {
+    if (!self || !self->m_CachedPtr.m_value) return 0.0f;
+
+    using Get_SpatialBlendMix = function_ptr_t<float, UnityEngine::AudioSource*>;
+    static auto get_SpatialBlendMix = reinterpret_cast<Get_SpatialBlendMix>(
+        il2cpp_functions::resolve_icall("UnityEngine.AudioSource::GetSpatialBlendMix"));
+    // Some Quest Unity builds do not expose this internal call. A safe fallback is
+    // preferable to dereferencing an invalid function pointer.
+    return get_SpatialBlendMix ? get_SpatialBlendMix(self) : 0.0f;
+}
+
+extern Logger& getLogger();
+
+namespace AudioLink {
+
+    void AudioLinkComponent::ctor(::AudioLink::AssetBundleManager* assetBundleManager) {
+        getLogger().info("AudioLink ctor");
+
+        _audioFramesL = ArrayW<float>(il2cpp_array_size_t(1023 * 4));
+        _audioFramesR = ArrayW<float>(il2cpp_array_size_t(1023 * 4));
+        _samples = ArrayW<float>(il2cpp_array_size_t(1023));
+
+        _customThemeColor0 = Sombrero::FastColor::red();
+        _customThemeColor1 = Sombrero::FastColor::cyan();
+        _customThemeColor2 = Sombrero::FastColor::pink();
+        _customThemeColor3 = Sombrero::FastColor::lightblue();
+
+        _assetBundleManager = assetBundleManager;
+
+    }
+
+    void AudioLinkComponent::SetAudioSource(UnityEngine::AudioSource* audioSource) {
+        if (!audioSource || !audioSource->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: refusing to set an invalid AudioSource");
+            return;
+        }
+        getLogger().info("Set AudioSource: %p", audioSource);
+        static auto _audioSource_info = il2cpp_functions::class_get_field_from_name(klass, "_audioSource");
+        il2cpp_functions::field_set_value_object(this, _audioSource_info, audioSource);
+    }
+
+    void AudioLinkComponent::SetColorScheme(GlobalNamespace::ColorScheme* colorScheme) {
+        if (!colorScheme) return;
+        getLogger().info("Set ColorScheme: %p", colorScheme);
+        _customThemeColor0 = colorScheme->get_environmentColor0();
+        _customThemeColor1 = colorScheme->get_environmentColor1();
+        _customThemeColor2 = colorScheme->get_environmentColor0Boost();
+        _customThemeColor3 = colorScheme->get_environmentColor1Boost();
+
+        UpdateThemeColors();
+    }
+
+    void AudioLinkComponent::Initialize() {
+        getLogger().info("AudioLink Initialize");
+
+        if (!_assetBundleManager) {
+            getLogger().error("AudioLink: AssetBundleManager is null; visual initialization aborted");
+            return;
+        }
+
+        _assetBundleManager->Load();
+        auto audioMaterial = _assetBundleManager->get_material();
+        auto audioRenderTexture = _assetBundleManager->get_renderTexture();
+        if (!audioMaterial || !audioMaterial->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: material is null after loading asset bundle; visual initialization aborted");
+            return;
+        }
+        if (!audioRenderTexture || !audioRenderTexture->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: render texture is null after loading asset bundle; visual initialization aborted");
+            return;
+        }
+
+        static auto _audioMaterial_info = il2cpp_functions::class_get_field_from_name(klass, "_audioMaterial");
+        il2cpp_functions::field_set_value_object(this, _audioMaterial_info, audioMaterial);
+
+        getLogger().info("AudioLink: applying AudioLink shader settings");
+        UpdateSettings();
+        UpdateThemeColors();
+        // AudioLink's data texture is a CustomRenderTexture. Unlike a plain
+        // RenderTexture, it must run its shader update pass continuously for
+        // compatible map shaders to see live audio data. The PC-side Unity
+        // component explicitly switches this to Realtime; the Quest port must
+        // do the same because the bundle's serialized update mode is not reliable.
+        auto customRenderTexture = reinterpret_cast<UnityEngine::CustomRenderTexture*>(audioRenderTexture);
+        using CustomRenderTextureInitialize = function_ptr_t<void, UnityEngine::CustomRenderTexture*>;
+        static auto initializeCustomRenderTexture = reinterpret_cast<CustomRenderTextureInitialize>(
+            il2cpp_functions::resolve_icall("UnityEngine.CustomRenderTexture::Initialize"));
+        if (initializeCustomRenderTexture) {
+            initializeCustomRenderTexture(customRenderTexture);
+        } else {
+            getLogger().info("AudioLink: CustomRenderTexture Initialize icall unavailable; using loaded asset initialization");
+        }
+
+        // Realtime is enum value 0 in UnityEngine.CustomRenderTextureUpdateMode.
+        // Resolve the setter directly because some Quest generated headers omit this API.
+        using CustomRenderTextureSetUpdateMode = function_ptr_t<void, UnityEngine::CustomRenderTexture*, int>;
+        static auto setCustomRenderTextureUpdateMode = reinterpret_cast<CustomRenderTextureSetUpdateMode>(
+            il2cpp_functions::resolve_icall("UnityEngine.CustomRenderTexture::set_updateMode"));
+        if (setCustomRenderTextureUpdateMode) {
+            setCustomRenderTextureUpdateMode(customRenderTexture, 0);
+            getLogger().info("AudioLink: CustomRenderTexture set to Realtime mode");
+        } else {
+            getLogger().error("AudioLink: CustomRenderTexture updateMode setter icall was not found");
+        }
+
+        Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
+
+        _testPlane = UnityEngine::GameObject::CreatePrimitive(UnityEngine::PrimitiveType::Quad);
+        if (_testPlane && _testPlane->m_CachedPtr.m_value) {
+            _testPlane->get_transform()->set_localScale(Sombrero::FastVector3(2, 1, 1) * config.showTestPlane);
+            _testPlane->get_transform()->set_localPosition({0, 0.1, 2});
+            _testPlane->get_transform()->set_localEulerAngles({80, 0, 0});
+            UnityEngine::Object::DontDestroyOnLoad(_testPlane);
+            auto renderer = _testPlane->GetComponent<UnityEngine::Renderer*>();
+            if (renderer && renderer->m_CachedPtr.m_value) {
+                auto mat = renderer->get_material();
+                if (mat && mat->m_CachedPtr.m_value) {
+                    auto shader = Shader::Find("Unlit/Texture");
+                    if (shader && shader->m_CachedPtr.m_value) {
+                        mat->set_shader(shader);
+                        mat->set_mainTexture(audioRenderTexture);
+                    } else {
+                        getLogger().error("AudioLink: Unity shader Unlit/Texture was not found for the test plane");
+                    }
+                }
+            }
+        } else {
+            getLogger().error("AudioLink: could not create the test plane");
+        }
+
+        _initialized = true;
+        getLogger().info("AudioLink initialized; audio texture and material are ready");
+    }
+
+    void AudioLinkComponent::Dispose() {
+        if (_testPlane && _testPlane->m_CachedPtr.m_value)
+            UnityEngine::Object::DestroyImmediate(_testPlane);
+        _testPlane = nullptr;
+    }
+
+    void AudioLinkComponent::Tick() {
+        if (!_initialized) return;
+        // AudioLink time is cumulative; deltaTime alone never reaches the one-second
+        // update boundary and leaves time/FPS shader properties frozen.
+        _elapsedTime += Time::get_deltaTime();
+
+        {
+            double deltaTimeMS = Time::get_deltaTime() * 1000.0;
+            int advanceTimeMS = (int)deltaTimeMS;
+            _networkTimeMSAccumulatedError += deltaTimeMS - advanceTimeMS;
+            if (_networkTimeMSAccumulatedError > 1)
+            {
+                _networkTimeMSAccumulatedError--;
+                advanceTimeMS++;
+            }
+
+            _networkTimeMS += advanceTimeMS;
+        }
+
+        _fPSCount++;
+
+        if (_elapsedTime >= _fPSTime) {
+            FPSUpdate();
+        }
+
+        if (_audioMaterial && _audioMaterial->m_CachedPtr.m_value != 0) {
+            time_t rawtime = time(nullptr);
+            auto timeInfo = localtime(&rawtime);
+            unsigned long long timeOfDay = timeInfo->tm_hour * 60 * 60 + // hours since midnight * 60 * 60 for seconds since midnight
+                                  timeInfo->tm_min * 60 + // minutes after hour * 60 for seconds since hour
+                                  timeInfo->tm_sec; // seconds after minute
+            // = current time in seconds in day
+
+            _audioMaterial->SetVector(ShaderProperties::_advancedTimeProps, Vector4(
+                _elapsedTime,
+                _elapsedTimeMSW,
+                timeOfDay,
+                ConfigProperties::READBACK_TIME
+            ));
+
+            // Jan 1, 1970 = 62135596800 0000000.0 ticks.
+            //double utcSecondsUnix = (DateTime.UtcNow.Ticks / 10 000 000.0) - 62135596800.0;
+            // this works out to just being seconds since unix epoch
+            double utcSecondsUnix = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+            _audioMaterial->SetVector(ShaderProperties::_advancedTimeProps2, Vector4(
+                _networkTimeMS & 65535,
+                _networkTimeMS >> 16,
+                std::floor(utcSecondsUnix / 86400),
+                std::fmod(utcSecondsUnix, 86400)
+            ));
+
+            if (_audioSource && _audioSource->m_CachedPtr.m_value)
+            {
+                SendAudioOutputData();
+
+                // Used to correct for the volume of the audio source component
+                _audioMaterial->SetFloat(ShaderProperties::_sourceVolume, _audioSource->get_volume());
+                _audioMaterial->SetFloat(ShaderProperties::_sourceSpatialBlend, GetSpatialBlendMix(_audioSource));
+            }
+        }
+    }
+
+    void AudioLinkComponent::UpdateSettings() {
+        getLogger().info("Updating Settings");
+        if (!_audioMaterial || !_audioMaterial->m_CachedPtr.m_value) return;
+        _audioMaterial->SetFloat(ShaderProperties::_x0, ConfigProperties::X0);
+        _audioMaterial->SetFloat(ShaderProperties::_x1, ConfigProperties::X1);
+        _audioMaterial->SetFloat(ShaderProperties::_x2, ConfigProperties::X2);
+        _audioMaterial->SetFloat(ShaderProperties::_x3, ConfigProperties::X3);
+        _audioMaterial->SetFloat(ShaderProperties::_threshold0, ConfigProperties::THRESHOLD0);
+        _audioMaterial->SetFloat(ShaderProperties::_threshold1, ConfigProperties::THRESHOLD1);
+        _audioMaterial->SetFloat(ShaderProperties::_threshold2, ConfigProperties::THRESHOLD2);
+        _audioMaterial->SetFloat(ShaderProperties::_threshold3, ConfigProperties::THRESHOLD3);
+        _audioMaterial->SetFloat(ShaderProperties::_gain, ConfigProperties::GAIN);
+        _audioMaterial->SetFloat(ShaderProperties::_fadeLength, ConfigProperties::FADE_LENGTH);
+        _audioMaterial->SetFloat(ShaderProperties::_fadeExpFalloff, ConfigProperties::FADE_EXP_FALLOFF);
+        _audioMaterial->SetFloat(ShaderProperties::_bass, ConfigProperties::BASS);
+        _audioMaterial->SetFloat(ShaderProperties::_treble, ConfigProperties::TREBLE);
+    }
+
+    void AudioLinkComponent::UpdateThemeColors() {
+        getLogger().info("Updating Color Scheme");
+        if (!_audioMaterial || !_audioMaterial->m_CachedPtr.m_value) return;
+        _audioMaterial->SetInt(ShaderProperties::_themeColorMode, ConfigProperties::THEME_COLOR_MODE);
+        _audioMaterial->SetColor(ShaderProperties::_customThemeColor0ID, _customThemeColor0);
+        _audioMaterial->SetColor(ShaderProperties::_customThemeColor1ID, _customThemeColor1);
+        _audioMaterial->SetColor(ShaderProperties::_customThemeColor2ID, _customThemeColor2);
+        _audioMaterial->SetColor(ShaderProperties::_customThemeColor3ID, _customThemeColor3);
+    }
+
+    void AudioLinkComponent::FPSUpdate() {
+        if (_audioMaterial && _audioMaterial->m_CachedPtr.m_value) {
+            _audioMaterial->SetVector(ShaderProperties::_versionNumberAndFPSProperty, Vector4(ConfigProperties::AUDIOLINK_VERSION_NUMBER, 0, _fPSCount, 1));
+            _audioMaterial->SetVector(ShaderProperties::_playerCountAndData, {0, 0, 0, 0});
+        } else {
+            getLogger().error("_audioMaterial %p was not valid!\n", _audioMaterial);
+            getLogger().error("Some properties have not been set...");
+        }
+
+        _fPSCount = 0;
+        _fPSTime++;
+
+        // Other things to handle every second.
+
+        // This handles wrapping of the ElapsedTime so we don't lose precision
+        // onthe floating point.
+        const double ElapsedTimeMSWBoundary = 1024;
+        if (_elapsedTime >= ElapsedTimeMSWBoundary)
+        {
+            // For particularly long running instances, i.e. several days, the first
+            // few frames will be spent federating _elapsedTime into _elapsedTimeMSW.
+            // This is fine.  It just means over time, the
+            _fPSTime = 0;
+            _elapsedTime -= ElapsedTimeMSWBoundary;
+            _elapsedTimeMSW++;
+        }
+
+        // Finely adjust our network time estimate if needed.
+        int networkTimeMSNow = (int)(Time::get_time() * 1000.0f);
+        int networkTimeDelta = networkTimeMSNow - _networkTimeMS;
+        if (networkTimeDelta > 3000 || networkTimeDelta < -3000) {
+            // Major upset, reset.
+            _networkTimeMS = networkTimeMSNow;
+        } else {
+            // Slowly correct the timebase.
+            _networkTimeMS += networkTimeDelta / 20;
+        }
+    }
+
+    void AudioLinkComponent::SendAudioOutputData() {
+        GetOutputDataHelper(_audioSource, _audioFramesL, 0); // left channel
+
+        if (_rightChannelTestCounter > 0)
+        {
+            if (_ignoreRightChannel)
+            {
+                // TODO: check if the Copy is allowed, else rewrite to memcpy
+                memcpy(_audioFramesR.begin(), _audioFramesL.begin(), sizeof(float) * 4092);
+                //System::Array::Copy((System::Array*)_audioFramesL.convert(), 0, (System::Array*)_audioFramesR.convert(), 0, 4092);
+            }
+            else {
+                GetOutputDataHelper(_audioSource, _audioFramesR, 1); // right channel
+            }
+
+            _rightChannelTestCounter--;
+        }
+        else
+        {
+            _rightChannelTestCounter = ConfigProperties::RIGHT_CHANNEL_TEST_DELAY;      // reset test countdown
+            _audioFramesR[0] = 0.0f;                                                    // reset tested array element to zero just in case
+            GetOutputDataHelper(_audioSource, _audioFramesR, 1);                        // right channel test
+            _ignoreRightChannel = _audioFramesR[0] == 0.0f;
+        }
+
+        memcpy(_samples.begin(), _audioFramesL.begin() + (1023 * 0), sizeof(float) * 1023);
+        _audioMaterial->SetFloatArray(ShaderProperties::_samples0L, _samples);
+        memcpy(_samples.begin(), _audioFramesL.begin() + (1023 * 1), sizeof(float) * 1023);
+        _audioMaterial->SetFloatArray(ShaderProperties::_samples1L, _samples);
+        memcpy(_samples.begin(), _audioFramesL.begin() + (1023 * 2), sizeof(float) * 1023);
+        _audioMaterial->SetFloatArray(ShaderProperties::_samples2L, _samples);
+        memcpy(_samples.begin(), _audioFramesL.begin() + (1023 * 3), sizeof(float) * 1023);
+        _audioMaterial->SetFloatArray(ShaderProperties::_samples3L, _samples);
+
+        memcpy(_samples.begin(), _audioFramesR.begin() + (1023 * 0), sizeof(float) * 1023);
+        _audioMaterial->SetFloatArray(ShaderProperties::_samples0R, _samples);
+        memcpy(_samples.begin(), _audioFramesR.begin() + (1023 * 1), sizeof(float) * 1023);
+        _audioMaterial->SetFloatArray(ShaderProperties::_samples1R, _samples);
+        memcpy(_samples.begin(), _audioFramesR.begin() + (1023 * 2), sizeof(float) * 1023);
+        _audioMaterial->SetFloatArray(ShaderProperties::_samples2R, _samples);
+        memcpy(_samples.begin(), _audioFramesR.begin() + (1023 * 3), sizeof(float) * 1023);
+        _audioMaterial->SetFloatArray(ShaderProperties::_samples3R, _samples);
+    }
+
+    /* these methods exist to make the things they return "readonly" */
+    Sombrero::FastColor AudioLinkComponent::get_customThemeColor0() { return _customThemeColor0; }
+    Sombrero::FastColor AudioLinkComponent::get_customThemeColor1() { return _customThemeColor1; }
+    Sombrero::FastColor AudioLinkComponent::get_customThemeColor2() { return _customThemeColor2; }
+    Sombrero::FastColor AudioLinkComponent::get_customThemeColor3() { return _customThemeColor3; }
+    AudioSource* AudioLinkComponent::get_audioSource() { return _audioSource; }
+    Material* AudioLinkComponent::get_audioMaterial() { return _audioMaterial; }
+    ArrayW<float> AudioLinkComponent::get_audioFramesL() { return _audioFramesL; }
+    ArrayW<float> AudioLinkComponent::get_audioFramesR() { return _audioFramesR; }
+    ArrayW<float> AudioLinkComponent::get_samples() { return _samples; }
+}

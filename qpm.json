@@ -1,0 +1,86 @@
+{
+  "sharedDir": "shared",
+  "dependenciesDir": "extern",
+  "version": "0.0.2",
+  "info": {
+    "name": "AudioLink",
+    "id": "bs-audiolink",
+    "version": "0.0.2",
+    "url": "https://github.com/donoigabriel6-a11y/BSAudioLink-tesy",
+    "additionalData": {
+      "overrideSoName": "libbs-audiolink.so",
+      "cmake": true
+    }
+  },
+  "dependencies": [
+    {
+      "id": "libil2cpp",
+      "versionRange": "=0.4.0",
+      "additionalData": {
+        "headersOnly": true
+      }
+    },
+    {
+      "id": "bs-cordl",
+      "versionRange": "^4008.0.0",
+      "additionalData": {}
+    },
+    {
+      "id": "custom-types",
+      "versionRange": "^0.18.3",
+      "additionalData": {}
+    },
+    {
+      "id": "beatsaber-hook",
+      "versionRange": "^6.4.2",
+      "additionalData": {
+        "extraFiles": [
+          "shared/inline-hook"
+        ]
+      }
+    },
+    {
+      "id": "sombrero",
+      "versionRange": "^0.1.37",
+      "additionalData": {}
+    },
+    {
+      "id": "lapiz",
+      "versionRange": "^0.2.23",
+      "additionalData": {}
+    },
+    {
+      "id": "paper2_scotland2",
+      "versionRange": "^4.8.0",
+      "additionalData": {}
+    },
+    {
+      "id": "scotland2",
+      "versionRange": "^0.1.4",
+      "additionalData": {
+        "includeQmod": false
+      }
+    },
+    {
+      "id": "songcore",
+      "versionRange": "^1.1.26",
+      "additionalData": {}
+    }
+  ],
+  "workspace": {
+    "scripts": {
+      "restore": [
+        "pwsh -ExecutionPolicy Bypass -Command \"qpm config symlink disable; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; qpm restore; exit $LASTEXITCODE\""
+      ],
+      "build": [
+        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -SkipRestore"
+      ],
+      "clean": [
+        "pwsh -ExecutionPolicy Bypass -File ./scripts/build.ps1 -clean -SkipRestore"
+      ],
+      "qmod": [
+        "pwsh -ExecutionPolicy Bypass -File ./scripts/createqmod.ps1 AudioLink -clean"
+      ]
+    }
+  }
+}
