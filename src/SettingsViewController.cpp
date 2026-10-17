@@ -47,13 +47,19 @@ namespace {
         }
 
         auto labelTransform = labelObject->GetComponent<UnityEngine::RectTransform*>();
-        if (!labelTransform || !labelTransform->m_CachedPtr.m_value) return nullptr;
+        if (!labelTransform || !labelTransform->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink settings: label has no RectTransform");
+            return nullptr;
+        }
         labelTransform->SetParent(parent, false);
         labelTransform->set_anchoredPosition({0.0f, y});
         labelTransform->set_sizeDelta({100.0f, 12.0f});
 
         auto label = labelObject->GetComponent<TMPro::TextMeshProUGUI*>();
-        if (!label || !label->m_CachedPtr.m_value) return nullptr;
+        if (!label || !label->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink settings: label has no TextMeshProUGUI component");
+            return nullptr;
+        }
         auto font = TMPro::TMP_Settings::get_defaultFontAsset();
         if (font && font->m_CachedPtr.m_value) label->set_font(font);
         label->set_fontSize(5.0f);
@@ -84,10 +90,16 @@ namespace {
             buttonType
         });
         auto buttonObject = UnityEngine::GameObject::New_ctor("AudioLink Setting Button", components);
-        if (!buttonObject || !buttonObject->m_CachedPtr.m_value) return nullptr;
+        if (!buttonObject || !buttonObject->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink settings: could not create a button object");
+            return nullptr;
+        }
 
         auto buttonTransform = buttonObject->GetComponent<UnityEngine::RectTransform*>();
-        if (!buttonTransform || !buttonTransform->m_CachedPtr.m_value) return nullptr;
+        if (!buttonTransform || !buttonTransform->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink settings: button has no RectTransform");
+            return nullptr;
+        }
         buttonTransform->SetParent(parent, false);
         buttonTransform->set_anchoredPosition({0.0f, y});
         buttonTransform->set_sizeDelta({100.0f, 14.0f});
@@ -125,6 +137,7 @@ namespace {
 namespace AudioLink {
     void SettingsViewController::DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling) {
         HMUI::ViewController::DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
+        getLogger().info("AudioLink settings page activated (first activation: %s)", firstActivation ? "yes" : "no");
         if (!firstActivation) return;
 
         auto root = get_transform();
