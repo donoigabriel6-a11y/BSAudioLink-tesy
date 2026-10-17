@@ -3,6 +3,11 @@ name: Build Quest QMOD
 on:
   workflow_dispatch:
     inputs:
+      mod_version:
+        description: Override the version in mod.json (SemVer, for example 1.2.3); leave blank to use the checked-out ref's version
+        required: false
+        default: ""
+        type: string
       publish_release:
         description: Publish the built QMOD as a GitHub Release
         required: true
@@ -24,8 +29,39 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Preview ref and tracked tree
+      - name: Resolve mod version
+        id: version
+        env:
+          MOD_VERSION_INPUT: ${{ inputs.mod_version }}
         shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          manifest = Path("mod.json")
+          data = json.loads(manifest.read_text())
+          original = data["version"]
+          requested = os.environ["MOD_VERSION_INPUT"].strip()
+          version = requested or original
+          semver = r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?"
+          if not re.fullmatch(semver, version):
+              raise SystemExit(f"Invalid mod version {version!r}; use SemVer such as 1.2.3, without a leading v.")
+          if requested:
+              data["version"] = version
+              manifest.write_text(json.dumps(data, indent=2) + "\n")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"mod_version={version}\n")
+              output.write(f"source_version={original}\n")
+          PY
+
+      - name: Preview ref, selected version, and tracked tree
+        shell: bash
+        env:
+          MOD_VERSION: ${{ steps.version.outputs.mod_version }}
+          SOURCE_VERSION: ${{ steps.version.outputs.source_version }}
         run: |
           {
             echo "## Quest QMOD build preview"
@@ -33,18 +69,16 @@ jobs:
             echo "- **Ref:** \`${GITHUB_REF}\`"
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo "- **Mod:** \`$(python3 -c 'import json; print(json.load(open("mod.json"))["id"])')\`"
-            echo "- **Version:** \`$(python3 -c 'import json; print(json.load(open("mod.json"))["version"])')\`"
+            echo "- **Version to package:** \`${MOD_VERSION}\`"
+            if [ "$MOD_VERSION" != "$SOURCE_VERSION" ]; then
+              echo "- **Version in source manifest:** \`${SOURCE_VERSION}\` (overridden for this build)"
+            fi
             echo
             echo "### Tracked files in the source tree"
             echo '```text'
             git ls-tree -r --name-only "$GITHUB_SHA"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Read mod version
-        id: version
-        shell: bash
-        run: echo "mod_version=$(python3 -c 'import json; print(json.load(open("mod.json"))["version"])')" >> "$GITHUB_OUTPUT"
 
       - name: Set up Android SDK and NDK
         uses: android-actions/setup-android@v3
@@ -79,7 +113,7 @@ jobs:
       - name: Upload QMOD artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AudioLink-QMOD
+          name: AudioLink-QMOD-${{ steps.version.outputs.mod_version }}
           path: AudioLink.qmod
           if-no-files-found: error
           retention-days: 14
@@ -100,7 +134,7 @@ jobs:
       - name: Download built QMOD
         uses: actions/download-artifact@v4
         with:
-          name: AudioLink-QMOD
+          name: AudioLink-QMOD-${{ needs.build.outputs.mod_version }}
           path: release-assets
 
       - name: Publish versioned release
