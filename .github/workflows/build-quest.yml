@@ -49,9 +49,7 @@ jobs:
       - name: Set up Android SDK and NDK
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            ndk;27.3.13750724
-            cmake;3.22.1
+          packages: ndk;27.3.13750724,cmake;3.22.1
 
       - name: Install pinned QPM CLI
         shell: bash
