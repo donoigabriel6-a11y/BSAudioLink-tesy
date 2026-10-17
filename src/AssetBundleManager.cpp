@@ -49,7 +49,7 @@ namespace AudioLink {
         getLogger().info("AudioLink: embedded asset bundle loaded");
 
         auto material = bundle->LoadAsset<UnityEngine::Material*>(
-            "assets/com.llealloo.audiolink/runtime/materials/mat_audiolink.mat"
+            "assets/audiolink/materials/mat_audiolink.mat"
         );
         if (!material || !material->m_CachedPtr.m_value) {
             getLogger().error("AudioLink: mat_audiolink.mat was not found in the asset bundle");
@@ -59,7 +59,7 @@ namespace AudioLink {
         }
 
         auto rt = bundle->LoadAsset<UnityEngine::RenderTexture*>(
-            "assets/com.llealloo.audiolink/runtime/rendertextures/rt_audiolink.asset"
+            "assets/audiolink/rendertextures/rt_audiolink.asset"
         );
         if (!rt || !rt->m_CachedPtr.m_value) {
             getLogger().error("AudioLink: rt_audiolink.asset was not found in the asset bundle");
