@@ -6,5 +6,5 @@ It will use the lights and boost colors from the users custom colours to create 
 https://github.com/llealloo/vrc-udon-audio-link
 
 
-## Quest port
+## Quest Port
 The project is still getting developed and it does not currently work at this momment.
