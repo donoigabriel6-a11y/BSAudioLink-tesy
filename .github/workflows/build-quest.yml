@@ -1,0 +1,122 @@
+name: Build Quest QMOD
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish the built QMOD as a GitHub Release
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Preview and build Quest port
+    runs-on: ubuntu-latest
+    outputs:
+      mod_version: ${{ steps.version.outputs.mod_version }}
+    steps:
+      - name: Check out selected ref
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Preview ref and tracked tree
+        shell: bash
+        run: |
+          {
+            echo "## Quest QMOD build preview"
+            echo
+            echo "- **Ref:** \`${GITHUB_REF}\`"
+            echo "- **Commit:** \`${GITHUB_SHA}\`"
+            echo "- **Mod:** \`$(python3 -c 'import json; print(json.load(open("mod.json"))["id"])')\`"
+            echo "- **Version:** \`$(python3 -c 'import json; print(json.load(open("mod.json"))["version"])')\`"
+            echo
+            echo "### Tracked files in the source tree"
+            echo '```text'
+            git ls-tree -r --name-only "$GITHUB_SHA"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Read mod version
+        id: version
+        shell: bash
+        run: echo "mod_version=$(python3 -c 'import json; print(json.load(open("mod.json"))["version"])')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            ndk;27.3.13750724
+            cmake;3.22.1
+
+      - name: Install pinned QPM CLI
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error \
+            https://github.com/QuestPackageManager/QPM.CLI/releases/download/v1.5.11/qpm-linux-x64.zip \
+            --output "$RUNNER_TEMP/qpm.zip"
+          echo "935f75eececb838759f09e7619c48b223612f136e3442a2cd5e8beef01f4a993  $RUNNER_TEMP/qpm.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/qpm.zip" -d "$RUNNER_TEMP/qpm"
+          sudo install -m 0755 "$RUNNER_TEMP/qpm/qpm" /usr/local/bin/qpm
+          qpm --version
+
+      - name: Restore pinned dependencies
+        shell: bash
+        run: |
+          qpm config symlink disable
+          qpm restore
+
+      - name: Build native library
+        shell: pwsh
+        run: ./scripts/build.ps1 -clean -SkipRestore
+
+      - name: Package QMOD
+        shell: pwsh
+        run: ./scripts/createqmod.ps1 AudioLink -clean
+
+      - name: Upload QMOD artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioLink-QMOD
+          path: AudioLink.qmod
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    if: inputs.publish_release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out exact built commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download built QMOD
+        uses: actions/download-artifact@v4
+        with:
+          name: AudioLink-QMOD
+          path: release-assets
+
+      - name: Publish versioned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MOD_VERSION: ${{ needs.build.outputs.mod_version }}
+        shell: bash
+        run: |
+          tag="v${MOD_VERSION}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Release tag ${tag} already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+          gh release create "$tag" release-assets/AudioLink.qmod \
+            --target "$GITHUB_SHA" \
+            --title "AudioLink ${MOD_VERSION}" \
+            --generate-notes

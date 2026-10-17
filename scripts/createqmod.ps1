@@ -93,11 +93,18 @@ $qmod = $qmodName + ".qmod"
 
 if ($clean.IsPresent) {
     echo "Making Clean Qmod"
+    Remove-Item -Path $zip, $qmod -Force -ErrorAction SilentlyContinue
 }
 
-if ((-not ($clean.IsPresent)) -and (Test-Path $qmod))
+if (-not $clean.IsPresent -and (Test-Path $qmod))
 {
     Move-Item $qmod $zip -Force
+}
+
+foreach ($path in $fileList) {
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw "Required QMOD input is missing: $path"
+    }
 }
 
 Compress-Archive -Path $filelist -DestinationPath $zip -Update

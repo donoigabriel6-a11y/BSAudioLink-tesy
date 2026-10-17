@@ -58,6 +58,8 @@ DECLARE_CLASS_CODEGEN_INTERFACES(AudioLink, AudioLinkComponent, Il2CppObject, Ze
     DECLARE_OVERRIDE_METHOD_MATCH(void, Dispose, &::System::IDisposable::Dispose);
 
     DECLARE_INSTANCE_METHOD(void, UpdateSettings);
+    DECLARE_INSTANCE_METHOD(void, RefreshSettings);
+    DECLARE_INSTANCE_METHOD(void, UpdateTestPlane);
     DECLARE_INSTANCE_METHOD(void, UpdateThemeColors);
     DECLARE_INSTANCE_METHOD(void, FPSUpdate);
     DECLARE_INSTANCE_METHOD(void, SendAudioOutputData);
@@ -65,6 +67,8 @@ DECLARE_CLASS_CODEGEN_INTERFACES(AudioLink, AudioLinkComponent, Il2CppObject, Ze
     DECLARE_INSTANCE_METHOD(void, SetColorScheme, GlobalNamespace::ColorScheme* colorScheme);
 
     public:
+        static AudioLinkComponent* get_instance();
         DECLARE_CTOR(ctor, ::AudioLink::AssetBundleManager* assetBundleManager);
+    private:
+        static AudioLinkComponent* instance;
 };
-

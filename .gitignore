@@ -338,3 +338,15 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# Native Quest build and QPM restore output
+/build/
+/extern/
+/extern.cmake
+/qpm.shared.json
+/qpm_defines.cmake
+/include/assets.hpp
+/assets/Bundle
+*.qmod
+*.qmod.zip
+/AudioLink.zip
