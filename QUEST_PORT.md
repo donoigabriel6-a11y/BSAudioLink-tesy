@@ -28,9 +28,10 @@ The native library name is `libbs-audiolink.so` and the QPM mod ID is `bs-audiol
 ## GitHub Actions build
 
 Run **Build Quest QMOD** from the Actions tab and choose the branch or tag to
-build. Enter a SemVer value (for example, `1.2.3`) in **Mod version** to
-override `mod.json` for this build only, or leave it blank to use the version
-from the selected ref. The workflow summary displays the selected ref, commit,
+build. Enter a version (for example, `1.2.3`) in **Mod version** to override
+`mod.json` for this build only; two-part versions such as `1.0` are normalized
+to `1.0.0`. Leave it blank to use the version from the selected ref. The
+workflow summary displays the selected ref, commit,
 packaged version, and tracked source tree before compilation. A successful run
 uploads a version-named QMOD artifact. **Publish GitHub Release** defaults to
 off; when enabled, the workflow creates the versioned `v<mod version>` tag and
