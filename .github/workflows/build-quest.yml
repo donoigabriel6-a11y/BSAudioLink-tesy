@@ -3,8 +3,13 @@ name: Build Quest QMOD
 on:
   workflow_dispatch:
     inputs:
+      build_ref:
+        description: Quest source branch, tag, or commit to build
+        required: true
+        default: quest/1.40.8-port
+        type: string
       mod_version:
-        description: Override the version in mod.json (SemVer, for example 1.2.3); leave blank to use the checked-out ref's version
+        description: Override the version in mod.json (SemVer, for example 1.2.3); leave blank to use the Quest source ref's version
         required: false
         default: ""
         type: string
@@ -23,11 +28,18 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       mod_version: ${{ steps.version.outputs.mod_version }}
+      source_sha: ${{ steps.source.outputs.source_sha }}
     steps:
-      - name: Check out selected ref
+      - name: Check out Quest source ref
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.build_ref }}
           persist-credentials: false
+
+      - name: Record checked-out source commit
+        id: source
+        shell: bash
+        run: echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Resolve mod version
         id: version
@@ -64,12 +76,15 @@ jobs:
         env:
           MOD_VERSION: ${{ steps.version.outputs.mod_version }}
           SOURCE_VERSION: ${{ steps.version.outputs.source_version }}
+          BUILD_REF: ${{ inputs.build_ref }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
         run: |
           {
             echo "## Quest QMOD build preview"
             echo
-            echo "- **Ref:** \`${GITHUB_REF}\`"
-            echo "- **Commit:** \`${GITHUB_SHA}\`"
+            echo "- **Workflow ref:** \`${GITHUB_REF}\`"
+            echo "- **Quest source ref:** \`${BUILD_REF}\`"
+            echo "- **Quest source commit:** \`${SOURCE_SHA}\`"
             echo "- **Mod:** \`$(python3 -c 'import json; print(json.load(open("mod.json"))["id"])')\`"
             echo "- **Version to package:** \`${MOD_VERSION}\`"
             if [ "$MOD_VERSION" != "$SOURCE_VERSION" ]; then
@@ -78,7 +93,7 @@ jobs:
             echo
             echo "### Tracked files in the source tree"
             echo '```text'
-            git ls-tree -r --name-only "$GITHUB_SHA"
+            git ls-tree -r --name-only "$SOURCE_SHA"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -131,7 +146,7 @@ jobs:
       - name: Check out exact built commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.build.outputs.source_sha }}
 
       - name: Download built QMOD
         uses: actions/download-artifact@v4
@@ -151,6 +166,6 @@ jobs:
             exit 1
           fi
           gh release create "$tag" release-assets/AudioLink.qmod \
-            --target "$GITHUB_SHA" \
+            --target "${{ needs.build.outputs.source_sha }}" \
             --title "AudioLink ${MOD_VERSION}" \
             --generate-notes
