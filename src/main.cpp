@@ -11,6 +11,11 @@
 #define PINKCORE
 #endif
 
+#if __has_include("Scotland2/shared/Settings.hpp")
+#include "Scotland2/shared/Settings.hpp"
+#define SCOTLAND2_SETTINGS
+#endif
+
 #include "config.hpp"
 #include "AssetBundleManager.hpp"
 #include "AudioLink.hpp"
@@ -149,6 +154,22 @@ extern "C" __attribute__((visibility("default"))) void load() {
 
 #ifdef PINKCORE
     PinkCore::RequirementAPI::RegisterInstalled("AudioLink");
+#endif
+
+#ifdef SCOTLAND2_SETTINGS
+    // Register mod settings with Scotland2
+    Scotland2::Settings::RegisterCategory(MOD_ID, "AudioLink", "AudioLink",
+        []() {
+            Scotland2::Settings::AddBool(MOD_ID, "showTestPlane", "Show Test Plane",
+                "Display a visual test plane showing audio data (may cause instability)",
+                config.showTestPlane,
+                [](bool value) {
+                    config.showTestPlane = value;
+                    SaveConfig();
+                    getLogger().info("showTestPlane changed to: %s", value ? "true" : "false");
+                    // Note: Test plane is created during Initialize, so this will take effect on next scene load
+                });
+        });
 #endif
 
     // Try now in case SongCore is already loaded. If not, late_load retries after
