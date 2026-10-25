@@ -34,10 +34,15 @@
 #include "GlobalNamespace/QuestAppInit.hpp"
 #include "GlobalNamespace/ColorManagerInstaller.hpp"
 #include "GlobalNamespace/SongPreviewPlayer.hpp"
+#include "GlobalNamespace/MainSettingsMenuViewController.hpp"
+#include "GlobalNamespace/SettingsSubMenuInfo.hpp"
 
 #include "lapiz/shared/zenject/Zenjector.hpp"
+#include "SettingsViewController.hpp"
+#include "beatsaber-hook/shared/utils/typedefs-array.hpp"
 
 modloader::ModInfo modInfo{MOD_ID, VERSION, 0};
+Logger& getLogger();
 
 namespace {
     constexpr const char* kLogTag = "BSAudioLink";
@@ -92,6 +97,43 @@ namespace {
         CapabilityLogInfo("Registered SongCore capability: AudioLink");
         return true;
     }
+
+    bool RegisterSettingsSubMenu(GlobalNamespace::MainSettingsMenuViewController* menu) {
+        if (!menu) {
+            CapabilityLogError("Beat Saber activated a null settings menu");
+            getLogger().error("AudioLink settings: Beat Saber activated a null settings menu");
+            return false;
+        }
+        auto existing = menu->_settingsSubMenuInfos;
+        const int32_t existingCount = existing ? existing.size() : 0;
+        for (int32_t i = 0; i < existingCount; ++i) {
+            auto info = existing[i];
+            if (info && info->____menuName == "AudioLink") {
+                getLogger().info("AudioLink settings submenu already exists");
+                return true;
+            }
+        }
+
+        auto expanded = ArrayW<GlobalNamespace::SettingsSubMenuInfo*>(
+            Array<GlobalNamespace::SettingsSubMenuInfo*>::NewLength(existingCount + 1)
+        );
+        for (int32_t i = 0; i < existingCount; ++i) expanded[i] = existing[i];
+
+        auto info = GlobalNamespace::SettingsSubMenuInfo::New_ctor();
+        auto settingsView = AudioLink::SettingsViewController::New_ctor();
+        if (!info || !settingsView) {
+            CapabilityLogError("Could not create the AudioLink settings page");
+            getLogger().error("AudioLink settings: could not create the submenu or view controller");
+            return false;
+        }
+        info->__cordl_internal_set__menuName("AudioLink");
+        info->__cordl_internal_set__viewController(settingsView);
+        expanded[existingCount] = info;
+        menu->__cordl_internal_set__settingsSubMenuInfos(expanded);
+        CapabilityLogInfo("Added AudioLink to Beat Saber settings");
+        getLogger().info("AudioLink settings submenu registered (%d existing entries)", existingCount);
+        return true;
+    }
 }
 
 Logger& getLogger() {
@@ -119,6 +161,12 @@ MAKE_HOOK_MATCH(ColorManagerInstaller_InstallBindings, &GlobalNamespace::ColorMa
     } else {
         getLogger().info("No menu provider exists!");
     }
+}
+
+MAKE_HOOK_MATCH(MainSettingsMenuViewController_DidActivate, &GlobalNamespace::MainSettingsMenuViewController::DidActivate, void, GlobalNamespace::MainSettingsMenuViewController* self, bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling) {
+    getLogger().info("Main settings view activated; registering AudioLink settings");
+    RegisterSettingsSubMenu(self);
+    MainSettingsMenuViewController_DidActivate(self, firstActivation, addedToHierarchy, screenSystemEnabling);
 }
 
 extern "C" __attribute__((visibility("default"))) void setup(CModInfo* info) noexcept {
@@ -151,6 +199,7 @@ extern "C" __attribute__((visibility("default"))) void load() {
 
     INSTALL_HOOK(logger, SongPreviewPlayer_CrossFadeTo);
     INSTALL_HOOK(logger, ColorManagerInstaller_InstallBindings);
+    INSTALL_HOOK(logger, MainSettingsMenuViewController_DidActivate);
 
 #ifdef PINKCORE
     PinkCore::RequirementAPI::RegisterInstalled("AudioLink");

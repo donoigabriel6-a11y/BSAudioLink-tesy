@@ -6,5 +6,9 @@ It will use the lights and boost colors from the users custom colours to create 
 https://github.com/llealloo/vrc-udon-audio-link
 
 
-## Quest port
-The project is still getting developed and it does not currently work at this momment.
+## Quest Port (Beat Saber 1.40.8)
+
+The repository root contains the native Quest port. See [QUEST_PORT.md](QUEST_PORT.md)
+for local build instructions and the GitHub Actions workflow. The workflow can
+build a QMOD artifact from any selected branch or tag; publishing a GitHub
+Release is a separate, opt-in choice.

@@ -22,6 +22,8 @@ DEFINE_TYPE(AudioLink, AudioLinkComponent);
 
 using namespace UnityEngine;
 
+AudioLink::AudioLinkComponent* AudioLink::AudioLinkComponent::instance = nullptr;
+
 void GetOutputDataHelper(UnityEngine::AudioSource* instance, ArrayW<float>& out, int channel) {
     // Use Unity's public AudioSource API instead of resolving the private
     // GetOutputDataHelper icall. Some Quest/Beat Saber runtimes do not expose
@@ -45,8 +47,13 @@ extern Logger& getLogger();
 
 namespace AudioLink {
 
+    AudioLinkComponent* AudioLinkComponent::get_instance() {
+        return instance;
+    }
+
     void AudioLinkComponent::ctor(::AudioLink::AssetBundleManager* assetBundleManager) {
         getLogger().info("AudioLink ctor");
+        instance = this;
 
         _audioFramesL = ArrayW<float>(il2cpp_array_size_t(1023 * 4));
         _audioFramesR = ArrayW<float>(il2cpp_array_size_t(1023 * 4));
@@ -140,39 +147,8 @@ namespace AudioLink {
 
         Shader::SetGlobalTexture(ShaderProperties::_audioTexture, audioRenderTexture, Rendering::RenderTextureSubElement::Default);
 
-        // Do not create any Unity primitive during normal startup. The test plane
-        // has caused instability on some Quest setups, so it is strictly opt-in.
-        // A future in-game control can enable it after AudioLink has initialized.
-        _testPlane = nullptr;
-        if (config.showTestPlane) {
-            _testPlane = UnityEngine::GameObject::CreatePrimitive(UnityEngine::PrimitiveType::Quad);
-            if (_testPlane && _testPlane->m_CachedPtr.m_value) {
-                _testPlane->get_transform()->set_localScale(Sombrero::FastVector3(2, 1, 1));
-                _testPlane->get_transform()->set_localPosition({0, 0.1, 2});
-                _testPlane->get_transform()->set_localEulerAngles({80, 0, 0});
-                UnityEngine::Object::DontDestroyOnLoad(_testPlane);
-                auto renderer = _testPlane->GetComponent<UnityEngine::Renderer*>();
-                if (renderer && renderer->m_CachedPtr.m_value) {
-                    auto mat = renderer->get_material();
-                    if (mat && mat->m_CachedPtr.m_value) {
-                        auto shader = Shader::Find("Unlit/Texture");
-                        if (shader && shader->m_CachedPtr.m_value) {
-                            mat->set_shader(shader);
-                            mat->set_mainTexture(audioRenderTexture);
-                        } else {
-                            getLogger().error("AudioLink: Unity shader Unlit/Texture was not found for the test plane");
-                        }
-                    }
-                }
-            } else {
-                getLogger().error("AudioLink: could not create the test plane");
-                _testPlane = nullptr;
-            }
-        } else {
-            getLogger().info("AudioLink: test plane disabled; skipped primitive creation");
-        }
-
         _initialized = true;
+        UpdateTestPlane();
         getLogger().info("AudioLink initialized; audio texture and material are ready");
     }
 
@@ -180,6 +156,7 @@ namespace AudioLink {
         if (_testPlane && _testPlane->m_CachedPtr.m_value)
             UnityEngine::Object::DestroyImmediate(_testPlane);
         _testPlane = nullptr;
+        if (instance == this) instance = nullptr;
     }
 
     void AudioLinkComponent::Tick() {
@@ -265,11 +242,61 @@ namespace AudioLink {
         _audioMaterial->SetFloat(ShaderProperties::_threshold1, ConfigProperties::THRESHOLD1);
         _audioMaterial->SetFloat(ShaderProperties::_threshold2, ConfigProperties::THRESHOLD2);
         _audioMaterial->SetFloat(ShaderProperties::_threshold3, ConfigProperties::THRESHOLD3);
-        _audioMaterial->SetFloat(ShaderProperties::_gain, ConfigProperties::GAIN);
-        _audioMaterial->SetFloat(ShaderProperties::_fadeLength, ConfigProperties::FADE_LENGTH);
+        _audioMaterial->SetFloat(ShaderProperties::_gain, config.gain);
+        _audioMaterial->SetFloat(ShaderProperties::_fadeLength, config.fadeLength);
         _audioMaterial->SetFloat(ShaderProperties::_fadeExpFalloff, ConfigProperties::FADE_EXP_FALLOFF);
-        _audioMaterial->SetFloat(ShaderProperties::_bass, ConfigProperties::BASS);
-        _audioMaterial->SetFloat(ShaderProperties::_treble, ConfigProperties::TREBLE);
+        _audioMaterial->SetFloat(ShaderProperties::_bass, config.bass);
+        _audioMaterial->SetFloat(ShaderProperties::_treble, config.treble);
+    }
+
+    void AudioLinkComponent::RefreshSettings() {
+        if (!_initialized) return;
+        UpdateSettings();
+        UpdateTestPlane();
+    }
+
+    void AudioLinkComponent::UpdateTestPlane() {
+        if (!_initialized) return;
+        if (!config.showTestPlane) {
+            if (_testPlane && _testPlane->m_CachedPtr.m_value)
+                UnityEngine::Object::DestroyImmediate(_testPlane);
+            _testPlane = nullptr;
+            return;
+        }
+        if (_testPlane && _testPlane->m_CachedPtr.m_value) return;
+
+        auto audioRenderTexture = _assetBundleManager ? _assetBundleManager->get_renderTexture() : nullptr;
+        if (!audioRenderTexture || !audioRenderTexture->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: cannot create test plane without a render texture");
+            return;
+        }
+        _testPlane = UnityEngine::GameObject::CreatePrimitive(UnityEngine::PrimitiveType::Quad);
+        if (!_testPlane || !_testPlane->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: could not create the test plane");
+            _testPlane = nullptr;
+            return;
+        }
+        _testPlane->get_transform()->set_localScale(Sombrero::FastVector3(2, 1, 1));
+        _testPlane->get_transform()->set_localPosition({0, 0.1, 2});
+        _testPlane->get_transform()->set_localEulerAngles({80, 0, 0});
+        UnityEngine::Object::DontDestroyOnLoad(_testPlane);
+        auto renderer = _testPlane->GetComponent<UnityEngine::Renderer*>();
+        if (!renderer || !renderer->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: test plane has no renderer");
+            return;
+        }
+        auto mat = renderer->get_material();
+        if (!mat || !mat->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: test plane has no material");
+            return;
+        }
+        auto shader = Shader::Find("Unlit/Texture");
+        if (!shader || !shader->m_CachedPtr.m_value) {
+            getLogger().error("AudioLink: Unity shader Unlit/Texture was not found for the test plane");
+            return;
+        }
+        mat->set_shader(shader);
+        mat->set_mainTexture(audioRenderTexture);
     }
 
     void AudioLinkComponent::UpdateThemeColors() {

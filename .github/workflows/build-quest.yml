@@ -1,0 +1,171 @@
+name: Build Quest QMOD
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_ref:
+        description: Quest source branch, tag, or commit to build
+        required: true
+        default: quest/1.40.8-port
+        type: string
+      mod_version:
+        description: Override the version in mod.json (SemVer, for example 1.2.3); leave blank to use the Quest source ref's version
+        required: false
+        default: ""
+        type: string
+      publish_release:
+        description: Publish the built QMOD as a GitHub Release
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Preview and build Quest port
+    runs-on: ubuntu-latest
+    outputs:
+      mod_version: ${{ steps.version.outputs.mod_version }}
+      source_sha: ${{ steps.source.outputs.source_sha }}
+    steps:
+      - name: Check out Quest source ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.build_ref }}
+          persist-credentials: false
+
+      - name: Record checked-out source commit
+        id: source
+        shell: bash
+        run: echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve mod version
+        id: version
+        env:
+          MOD_VERSION_INPUT: ${{ inputs.mod_version }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          manifest = Path("mod.json")
+          data = json.loads(manifest.read_text())
+          original = data["version"]
+          requested = os.environ["MOD_VERSION_INPUT"].strip()
+          if re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", requested):
+              requested += ".0"
+          version = requested or original
+          semver = r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?"
+          if not re.fullmatch(semver, version):
+              raise SystemExit(f"Invalid mod version {version!r}; use SemVer such as 1.2.3, without a leading v.")
+          if requested:
+              data["version"] = version
+              manifest.write_text(json.dumps(data, indent=2) + "\n")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"mod_version={version}\n")
+              output.write(f"source_version={original}\n")
+          PY
+
+      - name: Preview ref, selected version, and tracked tree
+        shell: bash
+        env:
+          MOD_VERSION: ${{ steps.version.outputs.mod_version }}
+          SOURCE_VERSION: ${{ steps.version.outputs.source_version }}
+          BUILD_REF: ${{ inputs.build_ref }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+        run: |
+          {
+            echo "## Quest QMOD build preview"
+            echo
+            echo "- **Workflow ref:** \`${GITHUB_REF}\`"
+            echo "- **Quest source ref:** \`${BUILD_REF}\`"
+            echo "- **Quest source commit:** \`${SOURCE_SHA}\`"
+            echo "- **Mod:** \`$(python3 -c 'import json; print(json.load(open("mod.json"))["id"])')\`"
+            echo "- **Version to package:** \`${MOD_VERSION}\`"
+            if [ "$MOD_VERSION" != "$SOURCE_VERSION" ]; then
+              echo "- **Version in source manifest:** \`${SOURCE_VERSION}\` (overridden for this build)"
+            fi
+            echo
+            echo "### Tracked files in the source tree"
+            echo '```text'
+            git ls-tree -r --name-only "$SOURCE_SHA"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ndk;27.3.13750724 cmake;3.22.1
+
+      - name: Install pinned QPM CLI
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error \
+            https://github.com/QuestPackageManager/QPM.CLI/releases/download/v1.5.11/qpm-linux-x64.zip \
+            --output "$RUNNER_TEMP/qpm.zip"
+          echo "935f75eececb838759f09e7619c48b223612f136e3442a2cd5e8beef01f4a993  $RUNNER_TEMP/qpm.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/qpm.zip" -d "$RUNNER_TEMP/qpm"
+          sudo install -m 0755 "$RUNNER_TEMP/qpm/qpm" /usr/local/bin/qpm
+          qpm --version
+
+      - name: Restore pinned dependencies
+        shell: bash
+        run: |
+          qpm config symlink disable
+          qpm restore
+
+      - name: Build native library
+        shell: pwsh
+        run: ./scripts/build.ps1 -clean -SkipRestore
+
+      - name: Package QMOD
+        shell: pwsh
+        run: ./scripts/createqmod.ps1 AudioLink -clean
+
+      - name: Upload QMOD artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioLink-QMOD-${{ steps.version.outputs.mod_version }}
+          path: AudioLink.qmod
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    if: inputs.publish_release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out exact built commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.source_sha }}
+
+      - name: Download built QMOD
+        uses: actions/download-artifact@v4
+        with:
+          name: AudioLink-QMOD-${{ needs.build.outputs.mod_version }}
+          path: release-assets
+
+      - name: Publish versioned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MOD_VERSION: ${{ needs.build.outputs.mod_version }}
+        shell: bash
+        run: |
+          tag="v${MOD_VERSION}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Release tag ${tag} already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+          gh release create "$tag" release-assets/AudioLink.qmod \
+            --target "${{ needs.build.outputs.source_sha }}" \
+            --title "AudioLink ${MOD_VERSION}" \
+            --generate-notes
