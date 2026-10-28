@@ -19,4 +19,6 @@ namespace ConfigProperties {
     static constexpr const float FADE_LENGTH = 0.25f;
     static constexpr const float FADE_EXP_FALLOFF = 0.75f;
     static constexpr const int THEME_COLOR_MODE = 1;
+    static constexpr const float AUTOGAIN = 1.0f;
+    static constexpr const float AUTOGAIN_DERATE = 0.1f;
 }

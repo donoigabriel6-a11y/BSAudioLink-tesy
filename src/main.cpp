@@ -4,6 +4,7 @@
 #include "scotland2/shared/modloader.h"
 #include <dlfcn.h>
 #include <android/log.h>
+#include <algorithm>
 #include "custom-types/shared/register.hpp"
 
 #if __has_include("pinkcore/shared/RequirementAPI.hpp")
@@ -217,6 +218,22 @@ extern "C" __attribute__((visibility("default"))) void load() {
                     SaveConfig();
                     getLogger().info("showTestPlane changed to: %s", value ? "true" : "false");
                     // Note: Test plane is created during Initialize, so this will take effect on next scene load
+                });
+            Scotland2::Settings::AddBool(MOD_ID, "autogain", "Auto Gain",
+                "Automatically adjust gain based on audio level",
+                config.autogain,
+                [](bool value) {
+                    config.autogain = value;
+                    SaveConfig();
+                    getLogger().info("autogain changed to: %s", value ? "true" : "false");
+                });
+            Scotland2::Settings::AddFloat(MOD_ID, "autogainDerate", "Auto Gain Derate",
+                "How quickly auto gain reduces (lower = slower)",
+                config.autogainDerate,
+                [](float value) {
+                    config.autogainDerate = std::clamp(value, 0.001f, 1.0f);
+                    SaveConfig();
+                    getLogger().info("autogainDerate changed to: %f", value);
                 });
         });
 #endif

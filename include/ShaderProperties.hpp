@@ -59,4 +59,10 @@ namespace ShaderProperties {
     static const ShaderPropID _samples1R("_Samples1R");
     static const ShaderPropID _samples2R("_Samples2R");
     static const ShaderPropID _samples3R("_Samples3R");
+
+    // Additional properties from PC version that some shaders depend on
+    static const ShaderPropID _autogain("_Autogain");
+    static const ShaderPropID _autogainDerate("_AutogainDerate");
+    static const ShaderPropID _sourcePosition("_SourcePosition");
+    static const ShaderPropID _sourceDistance("_SourceDistance");
 }

@@ -13,6 +13,7 @@
 #include "UnityEngine/Texture2D.hpp"
 #include "UnityEngine/CustomRenderTexture.hpp"
 #include "UnityEngine/Transform.hpp"
+#include "UnityEngine/Camera.hpp"
 #include "UnityEngine/Rendering/RenderTextureSubElement.hpp"
 #include <chrono>
 
@@ -55,9 +56,9 @@ namespace AudioLink {
         getLogger().info("AudioLink ctor");
         instance = this;
 
-        _audioFramesL = ArrayW<float>(il2cpp_array_size_t(1023 * 4));
-        _audioFramesR = ArrayW<float>(il2cpp_array_size_t(1023 * 4));
-        _samples = ArrayW<float>(il2cpp_array_size_t(1023));
+        _audioFramesL = ArrayW<float>(il2cpp_array_size_t(1024 * 4));
+        _audioFramesR = ArrayW<float>(il2cpp_array_size_t(1024 * 4));
+        _samples = ArrayW<float>(il2cpp_array_size_t(1024));
 
         _customThemeColor0 = Sombrero::FastColor::red();
         _customThemeColor1 = Sombrero::FastColor::cyan();
@@ -227,6 +228,26 @@ namespace AudioLink {
                 // Used to correct for the volume of the audio source component
                 _audioMaterial->SetFloat(ShaderProperties::_sourceVolume, _audioSource->get_volume());
                 _audioMaterial->SetFloat(ShaderProperties::_sourceSpatialBlend, GetSpatialBlendMix(_audioSource));
+
+                // Source position and distance for spatial audio effects
+                auto sourceTransform = _audioSource->get_transform();
+                if (sourceTransform && sourceTransform->m_CachedPtr.m_value) {
+                    auto pos = sourceTransform->get_position();
+                    _audioMaterial->SetVector(ShaderProperties::_sourcePosition, Vector4(pos.x, pos.y, pos.z, 0));
+
+                    // Calculate distance from listener (camera)
+                    auto mainCamera = UnityEngine::Camera::get_main();
+                    if (mainCamera && mainCamera->m_CachedPtr.m_value) {
+                        auto cameraTransform = mainCamera->get_transform();
+                        if (cameraTransform && cameraTransform->m_CachedPtr.m_value) {
+                            auto camPos = cameraTransform->get_position();
+                            Sombrero::FastVector3 sourcePos(pos.x, pos.y, pos.z);
+                            Sombrero::FastVector3 cameraPos(camPos.x, camPos.y, camPos.z);
+                            float distance = sourcePos.Distance(cameraPos);
+                            _audioMaterial->SetFloat(ShaderProperties::_sourceDistance, distance);
+                        }
+                    }
+                }
             }
         }
     }
@@ -247,6 +268,8 @@ namespace AudioLink {
         _audioMaterial->SetFloat(ShaderProperties::_fadeExpFalloff, ConfigProperties::FADE_EXP_FALLOFF);
         _audioMaterial->SetFloat(ShaderProperties::_bass, config.bass);
         _audioMaterial->SetFloat(ShaderProperties::_treble, config.treble);
+        _audioMaterial->SetFloat(ShaderProperties::_autogain, config.autogain ? 1.0f : 0.0f);
+        _audioMaterial->SetFloat(ShaderProperties::_autogainDerate, config.autogainDerate);
     }
 
     void AudioLinkComponent::RefreshSettings() {
@@ -356,8 +379,7 @@ namespace AudioLink {
             if (_ignoreRightChannel)
             {
                 // TODO: check if the Copy is allowed, else rewrite to memcpy
-                memcpy(_audioFramesR.begin(), _audioFramesL.begin(), sizeof(float) * 4092);
-                //System::Array::Copy((System::Array*)_audioFramesL.convert(), 0, (System::Array*)_audioFramesR.convert(), 0, 4092);
+                memcpy(_audioFramesR.begin(), _audioFramesL.begin(), sizeof(float) * 4096);
             }
             else {
                 GetOutputDataHelper(_audioSource, _audioFramesR, 1); // right channel
@@ -373,22 +395,22 @@ namespace AudioLink {
             _ignoreRightChannel = _audioFramesR[0] == 0.0f;
         }
 
-        memcpy(_samples.begin(), _audioFramesL.begin() + (1023 * 0), sizeof(float) * 1023);
+        memcpy(_samples.begin(), _audioFramesL.begin() + (1024 * 0), sizeof(float) * 1024);
         _audioMaterial->SetFloatArray(ShaderProperties::_samples0L, _samples);
-        memcpy(_samples.begin(), _audioFramesL.begin() + (1023 * 1), sizeof(float) * 1023);
+        memcpy(_samples.begin(), _audioFramesL.begin() + (1024 * 1), sizeof(float) * 1024);
         _audioMaterial->SetFloatArray(ShaderProperties::_samples1L, _samples);
-        memcpy(_samples.begin(), _audioFramesL.begin() + (1023 * 2), sizeof(float) * 1023);
+        memcpy(_samples.begin(), _audioFramesL.begin() + (1024 * 2), sizeof(float) * 1024);
         _audioMaterial->SetFloatArray(ShaderProperties::_samples2L, _samples);
-        memcpy(_samples.begin(), _audioFramesL.begin() + (1023 * 3), sizeof(float) * 1023);
+        memcpy(_samples.begin(), _audioFramesL.begin() + (1024 * 3), sizeof(float) * 1024);
         _audioMaterial->SetFloatArray(ShaderProperties::_samples3L, _samples);
 
-        memcpy(_samples.begin(), _audioFramesR.begin() + (1023 * 0), sizeof(float) * 1023);
+        memcpy(_samples.begin(), _audioFramesR.begin() + (1024 * 0), sizeof(float) * 1024);
         _audioMaterial->SetFloatArray(ShaderProperties::_samples0R, _samples);
-        memcpy(_samples.begin(), _audioFramesR.begin() + (1023 * 1), sizeof(float) * 1023);
+        memcpy(_samples.begin(), _audioFramesR.begin() + (1024 * 1), sizeof(float) * 1024);
         _audioMaterial->SetFloatArray(ShaderProperties::_samples1R, _samples);
-        memcpy(_samples.begin(), _audioFramesR.begin() + (1023 * 2), sizeof(float) * 1023);
+        memcpy(_samples.begin(), _audioFramesR.begin() + (1024 * 2), sizeof(float) * 1024);
         _audioMaterial->SetFloatArray(ShaderProperties::_samples2R, _samples);
-        memcpy(_samples.begin(), _audioFramesR.begin() + (1023 * 3), sizeof(float) * 1023);
+        memcpy(_samples.begin(), _audioFramesR.begin() + (1024 * 3), sizeof(float) * 1024);
         _audioMaterial->SetFloatArray(ShaderProperties::_samples3R, _samples);
     }
 
