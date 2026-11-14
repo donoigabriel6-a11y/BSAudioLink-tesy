@@ -10,6 +10,7 @@ DECLARE_CLASS_CODEGEN(AudioLink, SettingsViewController, HMUI::ViewController) {
     DECLARE_INSTANCE_FIELD_PRIVATE(TMPro::TextMeshProUGUI*, _bassLabel);
     DECLARE_INSTANCE_FIELD_PRIVATE(TMPro::TextMeshProUGUI*, _trebleLabel);
     DECLARE_INSTANCE_FIELD_PRIVATE(TMPro::TextMeshProUGUI*, _fadeLengthLabel);
+    DECLARE_INSTANCE_FIELD_PRIVATE(TMPro::TextMeshProUGUI*, _fadeExpFalloffLabel);
 
     DECLARE_OVERRIDE_METHOD_MATCH(
         void,

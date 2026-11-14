@@ -181,6 +181,12 @@ namespace AudioLink {
             if (auto component = AudioLinkComponent::get_instance()) component->RefreshSettings();
             RefreshLabels();
         });
+        _fadeExpFalloffLabel = CreateButton(root, -72.0f, "", [this] {
+            config.fadeExpFalloff = Cycle(config.fadeExpFalloff, {0.0f, 0.25f, 0.5f, 0.75f, 1.0f});
+            SaveConfig();
+            if (auto component = AudioLinkComponent::get_instance()) component->RefreshSettings();
+            RefreshLabels();
+        });
         RefreshLabels();
     }
 
@@ -205,6 +211,10 @@ namespace AudioLink {
         if (_fadeLengthLabel && _fadeLengthLabel->m_CachedPtr.m_value) {
             std::snprintf(text, sizeof(text), "Fade length: %.2f", config.fadeLength);
             _fadeLengthLabel->set_text(text);
+        }
+        if (_fadeExpFalloffLabel && _fadeExpFalloffLabel->m_CachedPtr.m_value) {
+            std::snprintf(text, sizeof(text), "Fade exp falloff: %.2f", config.fadeExpFalloff);
+            _fadeExpFalloffLabel->set_text(text);
         }
     }
 }

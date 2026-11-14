@@ -235,6 +235,14 @@ extern "C" __attribute__((visibility("default"))) void load() {
                     SaveConfig();
                     getLogger().info("autogainDerate changed to: %f", value);
                 });
+            Scotland2::Settings::AddFloat(MOD_ID, "fadeExpFalloff", "Fade Exp Falloff",
+                "Exponential falloff for fade trails (lower = more pulsed)",
+                config.fadeExpFalloff,
+                [](float value) {
+                    config.fadeExpFalloff = std::clamp(value, 0.0f, 1.0f);
+                    SaveConfig();
+                    getLogger().info("fadeExpFalloff changed to: %f", value);
+                });
         });
 #endif
 

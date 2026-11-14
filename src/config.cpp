@@ -34,6 +34,7 @@ void SaveConfig() {
     Save(bass);
     Save(treble);
     Save(fadeLength);
+    Save(fadeExpFalloff);
     Save(autogain);
     Save(autogainDerate);
     get_config().Write();
@@ -68,6 +69,7 @@ bool LoadConfig() {
     GET_FLOAT(bass);
     GET_FLOAT(treble);
     GET_FLOAT(fadeLength);
+    GET_FLOAT(fadeExpFalloff);
     GET_BOOL(autogain);
     GET_FLOAT(autogainDerate);
 
@@ -75,6 +77,7 @@ bool LoadConfig() {
     config.bass = std::isfinite(config.bass) ? std::clamp(config.bass, 0.0f, 2.0f) : 1.0f;
     config.treble = std::isfinite(config.treble) ? std::clamp(config.treble, 0.0f, 2.0f) : 1.0f;
     config.fadeLength = std::isfinite(config.fadeLength) ? std::clamp(config.fadeLength, 0.0f, 1.0f) : 0.25f;
+    config.fadeExpFalloff = std::isfinite(config.fadeExpFalloff) ? std::clamp(config.fadeExpFalloff, 0.0f, 1.0f) : 0.75f;
     config.autogainDerate = std::isfinite(config.autogainDerate) ? std::clamp(config.autogainDerate, 0.001f, 1.0f) : 0.1f;
 
     if (foundEverything)

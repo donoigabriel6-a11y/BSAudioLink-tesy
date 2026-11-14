@@ -6,6 +6,7 @@ struct config_t {
     float bass = 1.0f;
     float treble = 1.0f;
     float fadeLength = 0.25f;
+    float fadeExpFalloff = 0.75f;
     bool autogain = true;
     float autogainDerate = 0.1f;
 };

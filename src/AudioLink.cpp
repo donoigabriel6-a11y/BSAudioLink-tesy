@@ -265,7 +265,7 @@ namespace AudioLink {
         _audioMaterial->SetFloat(ShaderProperties::_threshold3, ConfigProperties::THRESHOLD3);
         _audioMaterial->SetFloat(ShaderProperties::_gain, config.gain);
         _audioMaterial->SetFloat(ShaderProperties::_fadeLength, config.fadeLength);
-        _audioMaterial->SetFloat(ShaderProperties::_fadeExpFalloff, ConfigProperties::FADE_EXP_FALLOFF);
+        _audioMaterial->SetFloat(ShaderProperties::_fadeExpFalloff, config.fadeExpFalloff);
         _audioMaterial->SetFloat(ShaderProperties::_bass, config.bass);
         _audioMaterial->SetFloat(ShaderProperties::_treble, config.treble);
         _audioMaterial->SetFloat(ShaderProperties::_autogain, config.autogain ? 1.0f : 0.0f);
