@@ -44,6 +44,16 @@ inline float GetSpatialBlendMix(UnityEngine::AudioSource* self) {
     return get_SpatialBlendMix ? get_SpatialBlendMix(self) : 0.0f;
 }
 
+// Helper to get AudioClip length via runtime method resolution (avoids LTO inline issues)
+inline float GetAudioClipLength(UnityEngine::AudioClip* clip) {
+    if (!clip || !clip->m_CachedPtr.m_value) return 0.0f;
+
+    using Get_Length = function_ptr_t<float, UnityEngine::AudioClip*>;
+    static auto get_Length = reinterpret_cast<Get_Length>(
+        il2cpp_functions::resolve_icall("UnityEngine.AudioClip::get_Length"));
+    return get_Length ? get_Length(clip) : 0.0f;
+}
+
 extern Logger& getLogger();
 
 namespace AudioLink {
@@ -64,6 +74,12 @@ namespace AudioLink {
         _customThemeColor1 = Sombrero::FastColor::cyan();
         _customThemeColor2 = Sombrero::FastColor::pink();
         _customThemeColor3 = Sombrero::FastColor::lightblue();
+
+        // Media state defaults (PC parity)
+        _mediaVolume = 1.0f;
+        _mediaTime = 0.0f;
+        _mediaPlaying = 0; // None
+        _mediaLoop = 0;    // None
 
         _assetBundleManager = assetBundleManager;
 
@@ -195,6 +211,12 @@ namespace AudioLink {
         }
 
         if (_audioMaterial && _audioMaterial->m_CachedPtr.m_value != 0) {
+            // Push media state to shader each frame (PC parity)
+            _audioMaterial->SetFloat(ShaderProperties::_mediaVolume, _mediaVolume);
+            _audioMaterial->SetFloat(ShaderProperties::_mediaTime, _mediaTime);
+            _audioMaterial->SetFloat(ShaderProperties::_mediaPlaying, static_cast<float>(_mediaPlaying));
+            _audioMaterial->SetFloat(ShaderProperties::_mediaLoop, static_cast<float>(_mediaLoop));
+
             time_t rawtime = time(nullptr);
             auto timeInfo = localtime(&rawtime);
             unsigned long long timeOfDay = timeInfo->tm_hour * 60 * 60 + // hours since midnight * 60 * 60 for seconds since midnight
@@ -246,6 +268,37 @@ namespace AudioLink {
                             float distance = sourcePos.Distance(cameraPos);
                             _audioMaterial->SetFloat(ShaderProperties::_sourceDistance, distance);
                         }
+                    }
+                }
+
+                // Auto-set media state from audio source (PC parity)
+                if (config.autoSetMediaState) {
+                    // Media volume
+                    SetMediaVolume(_audioSource->get_volume());
+
+                    // Media time (normalized 0-1)
+                    float time = 0.0f;
+                    auto clip = _audioSource->get_clip();
+                    if (clip && clip->m_CachedPtr.m_value) {
+                        float length = GetAudioClipLength(clip);
+                        if (length > 0.0f) {
+                            time = _audioSource->get_time() / length;
+                        }
+                    }
+                    SetMediaTime(time);
+
+                    // Media playing state
+                    if (_audioSource->get_isPlaying()) {
+                        SetMediaPlaying(1); // Playing
+                    } else {
+                        SetMediaPlaying(3); // Stopped
+                    }
+
+                    // Media loop state
+                    if (_audioSource->get_loop()) {
+                        SetMediaLoop(1); // Loop
+                    } else {
+                        SetMediaLoop(0); // None
                     }
                 }
             }
@@ -330,6 +383,35 @@ namespace AudioLink {
         _audioMaterial->SetColor(ShaderProperties::_customThemeColor1ID, _customThemeColor1);
         _audioMaterial->SetColor(ShaderProperties::_customThemeColor2ID, _customThemeColor2);
         _audioMaterial->SetColor(ShaderProperties::_customThemeColor3ID, _customThemeColor3);
+    }
+
+    // Media state API methods (PC parity)
+    void AudioLinkComponent::SetMediaVolume(float volume) {
+        _mediaVolume = volume;
+        if (_audioMaterial && _audioMaterial->m_CachedPtr.m_value) {
+            _audioMaterial->SetFloat(ShaderProperties::_mediaVolume, volume);
+        }
+    }
+
+    void AudioLinkComponent::SetMediaTime(float time) {
+        _mediaTime = time;
+        if (_audioMaterial && _audioMaterial->m_CachedPtr.m_value) {
+            _audioMaterial->SetFloat(ShaderProperties::_mediaTime, time);
+        }
+    }
+
+    void AudioLinkComponent::SetMediaPlaying(int playingState) {
+        _mediaPlaying = playingState;
+        if (_audioMaterial && _audioMaterial->m_CachedPtr.m_value) {
+            _audioMaterial->SetFloat(ShaderProperties::_mediaPlaying, static_cast<float>(playingState));
+        }
+    }
+
+    void AudioLinkComponent::SetMediaLoop(int loopState) {
+        _mediaLoop = loopState;
+        if (_audioMaterial && _audioMaterial->m_CachedPtr.m_value) {
+            _audioMaterial->SetFloat(ShaderProperties::_mediaLoop, static_cast<float>(loopState));
+        }
     }
 
     void AudioLinkComponent::FPSUpdate() {

@@ -37,6 +37,7 @@ void SaveConfig() {
     Save(fadeExpFalloff);
     Save(autogain);
     Save(autogainDerate);
+    Save(autoSetMediaState);
     get_config().Write();
     getLogger().info("Saved Configuration!");
 }
@@ -72,6 +73,7 @@ bool LoadConfig() {
     GET_FLOAT(fadeExpFalloff);
     GET_BOOL(autogain);
     GET_FLOAT(autogainDerate);
+    GET_BOOL(autoSetMediaState);
 
     config.gain = std::isfinite(config.gain) ? std::clamp(config.gain, 0.0f, 2.0f) : 1.0f;
     config.bass = std::isfinite(config.bass) ? std::clamp(config.bass, 0.0f, 2.0f) : 1.0f;

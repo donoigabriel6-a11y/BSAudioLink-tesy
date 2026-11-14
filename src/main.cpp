@@ -243,6 +243,14 @@ extern "C" __attribute__((visibility("default"))) void load() {
                     SaveConfig();
                     getLogger().info("fadeExpFalloff changed to: %f", value);
                 });
+            Scotland2::Settings::AddBool(MOD_ID, "autoSetMediaState", "Auto Set Media State",
+                "Automatically detect and sync media state from audio source",
+                config.autoSetMediaState,
+                [](bool value) {
+                    config.autoSetMediaState = value;
+                    SaveConfig();
+                    getLogger().info("autoSetMediaState changed to: %s", value ? "true" : "false");
+                });
         });
 #endif
 

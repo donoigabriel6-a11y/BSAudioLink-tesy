@@ -9,6 +9,7 @@ struct config_t {
     float fadeExpFalloff = 0.75f;
     bool autogain = true;
     float autogainDerate = 0.1f;
+    bool autoSetMediaState = true;
 };
 
 void SaveConfig();

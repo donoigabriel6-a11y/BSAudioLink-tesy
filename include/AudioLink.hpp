@@ -43,6 +43,12 @@ DECLARE_CLASS_CODEGEN_INTERFACES(AudioLink, AudioLinkComponent, Il2CppObject, Ze
     DECLARE_INSTANCE_FIELD_PRIVATE(bool, _ignoreRightChannel);
     DECLARE_INSTANCE_FIELD_PRIVATE(bool, _initialized);
 
+    // Media state (PC parity)
+    DECLARE_INSTANCE_FIELD_PRIVATE(float, _mediaVolume);
+    DECLARE_INSTANCE_FIELD_PRIVATE(float, _mediaTime);
+    DECLARE_INSTANCE_FIELD_PRIVATE(int, _mediaPlaying);
+    DECLARE_INSTANCE_FIELD_PRIVATE(int, _mediaLoop);
+
     DECLARE_INSTANCE_METHOD(Sombrero::FastColor, get_customThemeColor0);
     DECLARE_INSTANCE_METHOD(Sombrero::FastColor, get_customThemeColor1);
     DECLARE_INSTANCE_METHOD(Sombrero::FastColor, get_customThemeColor2);
@@ -65,6 +71,11 @@ DECLARE_CLASS_CODEGEN_INTERFACES(AudioLink, AudioLinkComponent, Il2CppObject, Ze
     DECLARE_INSTANCE_METHOD(void, SendAudioOutputData);
     DECLARE_INSTANCE_METHOD(void, SetAudioSource, UnityEngine::AudioSource* audioSource);
     DECLARE_INSTANCE_METHOD(void, SetColorScheme, GlobalNamespace::ColorScheme* colorScheme);
+    // Media state API (PC parity)
+    DECLARE_INSTANCE_METHOD(void, SetMediaVolume, float volume);
+    DECLARE_INSTANCE_METHOD(void, SetMediaTime, float time);
+    DECLARE_INSTANCE_METHOD(void, SetMediaPlaying, int playingState);
+    DECLARE_INSTANCE_METHOD(void, SetMediaLoop, int loopState);
 
     public:
         static AudioLinkComponent* get_instance();

@@ -65,4 +65,10 @@ namespace ShaderProperties {
     static const ShaderPropID _autogainDerate("_AutogainDerate");
     static const ShaderPropID _sourcePosition("_SourcePosition");
     static const ShaderPropID _sourceDistance("_SourceDistance");
+
+    // Media state properties (PC parity)
+    static const ShaderPropID _mediaVolume("_MediaVolume");
+    static const ShaderPropID _mediaTime("_MediaTime");
+    static const ShaderPropID _mediaPlaying("_MediaPlaying");
+    static const ShaderPropID _mediaLoop("_MediaLoop");
 }
